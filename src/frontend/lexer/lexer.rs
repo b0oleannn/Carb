@@ -9,7 +9,7 @@ pub(crate) struct Lexer {
 impl Lexer {
     pub fn next_token(&mut self) -> Token {
         return match self.current_character() {
-            '\n' | '\t' => {
+            '\n' | '\t' | ' ' => {
                 self.eat();
                 return Token::ignore_token();
             }
@@ -20,9 +20,30 @@ impl Lexer {
                     self.position,
                 );
             }
-
-            ' ' => return Token::new(TokenType::WhiteSpace, self.eat().to_string(), self.position),
-
+            '(' => {
+                return Token::new(
+                    TokenType::OpenParenthesis,
+                    self.eat().to_string(),
+                    self.position,
+                );
+            }
+            ')' => {
+                return Token::new(
+                    TokenType::CloseParenthesis,
+                    self.eat().to_string(),
+                    self.position,
+                );
+            }
+            '{' => {
+                return Token::new(TokenType::OpenBraces, self.eat().to_string(), self.position);
+            }
+            '}' => {
+                return Token::new(
+                    TokenType::CloseBraces,
+                    self.eat().to_string(),
+                    self.position,
+                );
+            }
             _ => {
                 if self.current_character().is_numeric() {
                     let start = self.position;

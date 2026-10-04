@@ -43,9 +43,7 @@ pub(crate) enum TokenType {
     CloseBraces,
     OpenSquareBraces,
     CloseSquareBraces,
-
-    WhiteSpace,
-
+    //WhiteSpace,
     Bad,
 
     EOF,
