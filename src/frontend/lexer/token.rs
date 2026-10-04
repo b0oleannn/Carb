@@ -33,6 +33,9 @@ pub(crate) enum TokenType {
     Number,
     Identifier,
 
+    Let,
+    Letf,
+
     BinaryOperator,
 
     Equals,
@@ -45,6 +48,9 @@ pub(crate) enum TokenType {
     CloseSquareBraces,
     //WhiteSpace,
     Bad,
+
+    If,
+    Else,
 
     EOF,
     Ignore,

@@ -1,15 +1,19 @@
+use std::collections::HashMap;
+
 use crate::frontend::lexer::token::{Token, TokenType};
 
 pub(crate) struct Lexer {
     position: usize,
     chars: Vec<char>,
     src: String,
+    keywords: HashMap<String, TokenType>,
 }
 
 impl Lexer {
     pub fn next_token(&mut self) -> Token {
         return match self.current_character() {
             '\n' | '\t' | ' ' => {
+                // skip
                 self.eat();
                 return Token::ignore_token();
             }
@@ -44,10 +48,22 @@ impl Lexer {
                     self.position,
                 );
             }
+            '=' => {
+                return Token::new(TokenType::Equals, self.eat().to_string(), self.position);
+            }
+            '"' => {
+                let start = self.position;
+                self.eat();
+                while !self.current_character().eq(&'"') {
+                    self.eat();
+                }
+                let string = self.src.get(start..self.position).unwrap();
+                return Token::new(TokenType::String, string.to_string(), self.position);
+            }
+
             _ => {
                 if self.current_character().is_numeric() {
                     let start = self.position;
-                    //println!("found number at {start}");
                     // passing over the numeric
                     while self.current_character().is_numeric() || self.current_character().eq(&'.')
                     {
@@ -56,6 +72,24 @@ impl Lexer {
                     return Token::new(
                         TokenType::Number,
                         self.src.get(start..self.position).unwrap().to_string(), // using slice to geting the number
+                        self.position,
+                    );
+                } else if self.current_character().is_ascii_alphabetic()
+                    || self.current_character().eq(&'_')
+                {
+                    let start = self.position;
+                    while self.current_character().is_ascii_alphabetic()
+                        || self.current_character().eq(&'_')
+                    {
+                        self.eat();
+                    }
+                    let str = self.src.get(start..self.position).unwrap().to_string();
+                    return Token::new(
+                        self.keywords
+                            .get(&str)
+                            .unwrap_or_else(|| &TokenType::Identifier)
+                            .clone(),
+                        str,
                         self.position,
                     );
                 }
@@ -77,6 +111,12 @@ impl Lexer {
             position: 0,
             chars: src.chars().collect(),
             src,
+            keywords: HashMap::from([
+                ("let".to_string(), TokenType::Let),
+                ("letf".to_string(), TokenType::Letf),
+                ("if".to_string(), TokenType::If),
+                ("else".to_string(), TokenType::Else),
+            ]),
         };
     }
 
