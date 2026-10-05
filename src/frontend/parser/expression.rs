@@ -44,7 +44,7 @@ fn parse_variable_declaration(parser: &mut Parser) -> Expression {
             Expression::VariableDeclaration {
                 is_final: false,
                 identifier,
-                value: Box::from(Expression::Null(parser.position)),
+                value: Box::from(Expression::Null),
                 position: parser.position,
             }
         }
@@ -58,18 +58,28 @@ fn parse_variable_declaration(parser: &mut Parser) -> Expression {
 }
 pub fn parse_primary_expression(parser: &mut Parser) -> Expression {
     return match parser.current_token().token_type {
-        TokenType::Number => Expression::Number(
-            parser.current_token().value.parse::<f64>().unwrap(),
-            parser.eat().position,
-        ),
-        TokenType::String => {
-            Expression::String(parser.current_token().value.clone(), parser.eat().position)
-        }
-
+        TokenType::Number => Expression::LiteralExpression {
+            value: Box::new(Expression::Number(
+                parser.current_token().value.parse::<f64>().unwrap(),
+            )),
+            position: parser.eat().position,
+        },
+        TokenType::String => Expression::LiteralExpression {
+            value: Box::new(Expression::String(parser.current_token().value.clone())),
+            position: parser.eat().position,
+        },
+        TokenType::True => Expression::LiteralExpression {
+            value: Box::new(Expression::Bool(true)),
+            position: parser.eat().position,
+        },
+        TokenType::False => Expression::LiteralExpression {
+            value: Box::new(Expression::Bool(false)),
+            position: parser.eat().position,
+        },
         TokenType::Identifier => parse_identifier(parser),
         TokenType::OpenBraces => parse_block(parser),
 
-        TokenType::Semicolon => Expression::Null(parser.eat().position),
+        TokenType::Semicolon => Expression::Null,
 
         TokenType::OpenParenthesis => {
             parser.eat(); // (
@@ -80,7 +90,7 @@ pub fn parse_primary_expression(parser: &mut Parser) -> Expression {
 
         _ => error(ColoredString::from(format!(
             "Failed to parse token '{}' at position {}",
-            parser.current_token().value.bold().italic(),
+            parser.current_token().value.bold(),
             parser.current_token().position.to_string().bold()
         ))),
     };

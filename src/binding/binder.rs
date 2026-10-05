@@ -16,7 +16,9 @@ pub fn bind_expression(expr: Expression) -> BoundExpression {
             operand,
             position,
         } => bind_unary_expression(operator, operand, position),
-        Expression::Number(val, _pos) => bind_literal_expression(val, _pos),
+        Expression::LiteralExpression { value, position } => {
+            bind_literal_expression(*value, position)
+        }
         _ => error(ColoredString::from(format!(
             "Unexpected expression {} for binding type ",
             format!("{:?}", expr).bold()
@@ -24,8 +26,8 @@ pub fn bind_expression(expr: Expression) -> BoundExpression {
     }
 }
 
-fn bind_literal_expression(val: f64, pos: usize) -> BoundExpression {
-    let literal = LiteralValue::Number(val);
+fn bind_literal_expression(val: Expression, pos: usize) -> BoundExpression {
+    let literal = LiteralValue::from(val);
     return BoundExpression::BoundLiteralExpression {
         value: literal.clone(),
         value_type: literal.get_value_type(),

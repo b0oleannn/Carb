@@ -1,6 +1,6 @@
 use colored::{ColoredString, Colorize};
 
-use crate::binding::error;
+use crate::{binding::error, frontend::parser::values::Expression};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum BoundExpression {
@@ -64,6 +64,16 @@ pub enum LiteralValue {
 }
 
 impl LiteralValue {
+    pub fn from(expr: Expression) -> LiteralValue {
+        match expr {
+            Expression::Number(num) => LiteralValue::Number(num),
+            Expression::Bool(b) => LiteralValue::Bool(b),
+            var => error(ColoredString::from(format!(
+                "Unable to get literal value from {}",
+                format!("{:?}", var).bold()
+            ))),
+        }
+    }
     pub fn get_value_type(&self) -> ValueType {
         match self {
             LiteralValue::String(_) => ValueType::String,

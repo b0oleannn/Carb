@@ -121,6 +121,8 @@ impl Lexer {
             keywords: HashMap::from([
                 ("let".to_string(), TokenType::Let),
                 ("letf".to_string(), TokenType::Letf),
+                ("true".to_string(), TokenType::True),
+                ("false".to_string(), TokenType::False),
                 ("if".to_string(), TokenType::If),
                 ("else".to_string(), TokenType::Else),
             ]),

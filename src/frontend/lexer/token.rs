@@ -40,6 +40,9 @@ pub enum TokenType {
     Let,
     Letf,
 
+    True,
+    False,
+
     BinaryOperator,
 
     Equals,

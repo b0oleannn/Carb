@@ -1,9 +1,14 @@
 #[derive(Debug, Clone)]
 pub enum Expression {
-    Number(f64, usize),
-    String(String, usize),
-    Bool(bool, usize),
-    Null(usize),
+    Number(f64),
+    String(String),
+    Bool(bool),
+    Null,
+
+    LiteralExpression {
+        value: Box<Expression>,
+        position: usize,
+    },
 
     Identifier(String, usize),
 

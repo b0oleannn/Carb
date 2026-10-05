@@ -122,16 +122,23 @@ pub fn evaluate_program(program: Program) {
     }
 }
 
-fn evaluate_expression(expression: BoundExpression, block: &mut Block) -> f64 {
+fn evaluate_expression(expression: BoundExpression, block: &mut Block) -> RuntimeValue {
     return match expression {
-        // Expression::Identifier(identifier, pos) => {
-        //     evaluate_identifier(identifier, pos, block).clone()
-        // }
         BoundExpression::BoundLiteralExpression {
             value,
             value_type,
             position,
-        } => value.get_value(),
+        } => {
+            return match value {
+                crate::binding::values::LiteralValue::Number(num) => RuntimeValue::Number(num),
+                crate::binding::values::LiteralValue::Bool(b) => RuntimeValue::Bool(b),
+                val => error(ColoredString::from(format!(
+                    "Failed to evaluate value {} at position {}",
+                    format!("{val:?}").bold(),
+                    position.to_string().bold().blue(),
+                ))),
+            };
+        }
         BoundExpression::BoundUnaryExpression {
             operator,
             operand,
@@ -158,10 +165,12 @@ fn evaluate_unary_expression(
     unary_expression: (BoundUnaryOperatorType, Box<BoundExpression>),
     block: &mut Block,
     _position: usize,
-) -> f64 {
+) -> RuntimeValue {
     match unary_expression.0 {
         BoundUnaryOperatorType::Identity => evaluate_expression(*unary_expression.1, block),
-        BoundUnaryOperatorType::Negation => -evaluate_expression(*unary_expression.1, block),
+        BoundUnaryOperatorType::Negation => RuntimeValue::Number(
+            -evaluate_expression(*unary_expression.1, block).get_number_value(_position),
+        ),
     }
 }
 
@@ -171,16 +180,37 @@ fn evaluate_binary_expression(
     right: BoundExpression,
     _position: usize,
     block: &mut Block,
-) -> f64 {
-    let left: f64 = evaluate_expression(left, block);
-    let right: f64 = evaluate_expression(right, block);
-
-    return match operator {
+) -> RuntimeValue {
+    let left: f64 = {
+        let value = evaluate_expression(left, block);
+        match value {
+            RuntimeValue::Number(num) => num,
+            _ => error(ColoredString::from(format!(
+                "Unable to get evaluate binary expression {} at position {}.
+               \n Binary expressions implemented only for numbers",
+                format!("{:?}", value).bold(),
+                _position.to_string().bold().blue()
+            ))),
+        }
+    };
+    let right: f64 = {
+        let value = evaluate_expression(right, block);
+        match value {
+            RuntimeValue::Number(num) => num,
+            _ => error(ColoredString::from(format!(
+                "Unable to get evaluate binary expression {} at position {}.
+               \n Binary expressions implemented only for numbers",
+                format!("{:?}", value).bold(),
+                _position.to_string().bold().blue()
+            ))),
+        }
+    };
+    return RuntimeValue::Number(match operator {
         BoundBinaryExpressionType::Addition => left + right,
         BoundBinaryExpressionType::Substraction => left - right,
         BoundBinaryExpressionType::Multiplication => left * right,
         BoundBinaryExpressionType::Devision => left / right,
-    };
+    });
 }
 //
 // fn evaluate_variable_declaration(
