@@ -67,6 +67,19 @@ fn print_expression(expr: &Expression, is_first: bool, prefix: &str, is_last: bo
             println!("{child_prefix}├── Operator: {operator}");
             print_expression(&right, false, &child_prefix, true);
         }
+        Expression::UnaryExpression {
+            operator,
+            operand,
+            position: _,
+        } => {
+            println!("{prefix}{marker}{}", "UnaryExpression".bold());
+            let mut child_prefix = String::new();
+            if !is_first {
+                child_prefix = format!("{prefix}{}", if is_last { "    " } else { "│   " });
+            }
+            println!("{child_prefix}├── Operator: {operator}");
+            print_expression(&operand, false, &child_prefix, true);
+        }
         Expression::VariableDeclaration {
             is_final,
             identifier,

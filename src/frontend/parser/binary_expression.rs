@@ -3,10 +3,26 @@ use crate::frontend::parser::{
 };
 
 pub fn parse_binary_expression(parser: &mut Parser, parent_precedence: usize) -> Expression {
-    let mut left = parse_primary_expression(parser);
+    let mut left;
+
+    let unary_operator_precedence: usize =
+        get_unary_operator_precedence(&parser.current_token().value);
+
+    if unary_operator_precedence >= parent_precedence {
+        let operator = parser.eat().value;
+        let operand = parse_binary_expression(parser, unary_operator_precedence);
+        left = Expression::UnaryExpression {
+            operator,
+            operand: Box::new(operand),
+            position: parser.position,
+        }
+    } else {
+        left = parse_primary_expression(parser);
+    }
+
     loop {
         let operator = parser.current_token().value.clone();
-        let precedence = get_precedence(&operator);
+        let precedence = get_binary_operator_precedence(&operator);
         if precedence == 0 || precedence <= parent_precedence {
             break;
         }
@@ -22,7 +38,14 @@ pub fn parse_binary_expression(parser: &mut Parser, parent_precedence: usize) ->
     left
 }
 
-fn get_precedence(str: &str) -> usize {
+fn get_unary_operator_precedence(value: &str) -> usize {
+    return match value {
+        "+" | "-" => 3,
+        _ => 0,
+    };
+}
+
+fn get_binary_operator_precedence(str: &str) -> usize {
     return match str {
         "*" | "/" => 2,
         "+" | "-" => 1,

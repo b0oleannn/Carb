@@ -12,6 +12,7 @@ use crate::frontend::{
 pub fn parse_expression(parser: &mut Parser) -> Expression {
     return match parser.current_token().token_type {
         TokenType::Letf | TokenType::Let => parse_variable_declaration(parser),
+
         _ => parse_binary_expression(parser, 0),
     };
 }

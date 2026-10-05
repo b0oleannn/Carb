@@ -93,6 +93,17 @@ pub enum RuntimeValue {
     Null,
     Bool(bool),
 }
+impl RuntimeValue {
+    fn get_number_value(&self, position: usize) -> f64 {
+        match self {
+            RuntimeValue::Number(num) => *num,
+            _ => error(ColoredString::from(format!(
+                "Unable to get the number value at position {}",
+                position.to_string().bold().blue(),
+            ))),
+        }
+    }
+}
 pub fn evaluate_program(program: Program) {
     let mut program_block = Block::program_block();
     for expression in program.body {
@@ -109,6 +120,11 @@ fn evaluate_expression(expression: Expression, block: &mut Block) -> RuntimeValu
         Expression::Identifier(identifier, pos) => {
             evaluate_identifier(identifier, pos, block).clone()
         }
+        Expression::UnaryExpression {
+            operator,
+            operand,
+            position,
+        } => evaluate_unary_expression((operator, operand), block, position),
 
         Expression::VariableDeclaration {
             is_final,
@@ -137,6 +153,24 @@ fn evaluate_expression(expression: Expression, block: &mut Block) -> RuntimeValu
             format!("{_val:?}").bold().blue()
         ))),
     };
+}
+
+fn evaluate_unary_expression(
+    unary_expression: (String, Box<Expression>),
+    block: &mut Block,
+    position: usize,
+) -> RuntimeValue {
+    match unary_expression.0.as_str() {
+        "+" => evaluate_expression(*unary_expression.1, block),
+        "-" => RuntimeValue::Number(
+            -evaluate_expression(*unary_expression.1, block).get_number_value(position),
+        ),
+        val => error(ColoredString::from(format!(
+            "Unsuported operator {} for unary expression at position {}",
+            val.bold(),
+            position.to_string().bold().blue()
+        ))),
+    }
 }
 
 fn evaluate_binary_expression(

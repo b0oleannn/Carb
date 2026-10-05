@@ -26,6 +26,11 @@ pub enum Expression {
         right: Box<Expression>,
         position: usize,
     },
+    UnaryExpression {
+        operator: String,
+        operand: Box<Expression>,
+        position: usize,
+    },
 
     VariableDeclaration {
         is_final: bool,
