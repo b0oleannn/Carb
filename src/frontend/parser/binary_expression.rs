@@ -3,13 +3,7 @@ use crate::frontend::parser::{
 };
 
 pub fn parse_binary_expression(parser: &mut Parser, parent_precedence: usize) -> Expression {
-    println!("parsing binary expression:");
     let mut left = parse_primary_expression(parser);
-    print!(
-        "primary expression: {:?}, next_token: {} \n",
-        left,
-        parser.current_token().value
-    );
     loop {
         let operator = parser.current_token().value.clone();
         let precedence = get_precedence(&operator);

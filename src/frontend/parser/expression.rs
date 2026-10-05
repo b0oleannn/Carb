@@ -54,11 +54,6 @@ fn parse_variable_declaration(parser: &mut Parser) -> Expression {
     };
 }
 pub fn parse_primary_expression(parser: &mut Parser) -> Expression {
-    println!(
-        "Parsing primary {:?}. Cursor : {}",
-        parser.current_token(),
-        parser.position
-    );
     return match parser.current_token().token_type {
         TokenType::Number => Expression::Number(
             parser.current_token().value.parse::<f64>().unwrap(),

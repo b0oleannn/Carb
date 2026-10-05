@@ -1,5 +1,5 @@
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) struct Token {
+pub struct Token {
     pub token_type: TokenType,
     pub value: String,
     pub position: usize,
@@ -14,7 +14,11 @@ impl Token {
         }
     }
     pub fn eof() -> Self {
-        Self::new(TokenType::EOF, "EndOfFile".to_string(), 0)
+        Self {
+            token_type: TokenType::EOF,
+            value: "EndOfFile".to_string(),
+            position: 0,
+        }
     }
     pub fn ignore_token() -> Self {
         Self {
@@ -28,7 +32,7 @@ impl Token {
     }
 }
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) enum TokenType {
+pub enum TokenType {
     String,
     Number,
     Identifier,

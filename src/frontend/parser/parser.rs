@@ -9,9 +9,10 @@ use crate::frontend::{
 
 use colored::{ColoredString, Colorize};
 
-pub(crate) struct Parser {
+pub struct Parser {
     tokens: Vec<Token>,
     pub position: usize,
+    eof_token: Token,
 }
 
 impl Parser {
@@ -21,6 +22,7 @@ impl Parser {
         Self {
             tokens: lexer.produce_tokens(),
             position: 0,
+            eof_token: Token::eof(),
         }
     }
 
@@ -38,7 +40,7 @@ impl Parser {
     pub fn is_eof(&self) -> bool {
         self.current_token().token_type.eq(&TokenType::EOF)
     }
-    pub fn expect(&mut self, token_type: TokenType) -> &Token {
+    pub fn expect(&mut self, token_type: TokenType) -> Token {
         let current = self.eat();
         if current.token_type.eq(&token_type) {
             return current;
@@ -51,10 +53,17 @@ impl Parser {
         )))
     }
 
-    pub fn eat(&mut self) -> &Token {
+    pub fn peak(&self, offset: usize) -> &Token {
+        if let Some(token) = self.tokens.get(self.position + offset) {
+            return token;
+        }
+        return &self.eof_token;
+    }
+
+    pub fn eat(&mut self) -> Token {
         if let Some(current) = self.tokens.get(self.position) {
             self.position += 1;
-            return current;
+            return current.to_owned();
         }
         error(ColoredString::from(format!(
             "Failed to jump to the next token. {}/{}",
