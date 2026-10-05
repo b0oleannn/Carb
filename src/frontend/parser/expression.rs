@@ -12,7 +12,7 @@ use crate::frontend::{
 pub fn parse_expression(parser: &mut Parser) -> Expression {
     return match parser.current_token().token_type {
         TokenType::Letf | TokenType::Let => parse_variable_declaration(parser),
-        _ => parse_binary_expression(parser),
+        _ => parse_binary_expression(parser, 0),
     };
 }
 
@@ -54,6 +54,11 @@ fn parse_variable_declaration(parser: &mut Parser) -> Expression {
     };
 }
 pub fn parse_primary_expression(parser: &mut Parser) -> Expression {
+    println!(
+        "Parsing primary {:?}. Cursor : {}",
+        parser.current_token(),
+        parser.position
+    );
     return match parser.current_token().token_type {
         TokenType::Number => Expression::Number(
             parser.current_token().value.parse::<f64>().unwrap(),
@@ -66,6 +71,8 @@ pub fn parse_primary_expression(parser: &mut Parser) -> Expression {
         TokenType::Identifier => parse_identifier(parser),
         TokenType::OpenBraces => parse_block(parser),
 
+        TokenType::Semicolon => Expression::Null(parser.eat().position),
+
         TokenType::OpenParenthesis => {
             parser.eat(); // (
             let result = parse_expression(parser); // expr
@@ -74,7 +81,7 @@ pub fn parse_primary_expression(parser: &mut Parser) -> Expression {
         }
 
         _ => error(ColoredString::from(format!(
-            "Failed to parse token type '{}' at position {}",
+            "Failed to parse token '{}' at position {}",
             parser.current_token().value.bold().italic(),
             parser.current_token().position.to_string().bold()
         ))),

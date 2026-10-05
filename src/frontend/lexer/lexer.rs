@@ -61,6 +61,13 @@ impl Lexer {
                 return Token::new(TokenType::String, string.to_string(), self.position);
             }
 
+            ';' => {
+                return Token::new(TokenType::Semicolon, self.eat().to_string(), self.position);
+            }
+
+            ':' => {
+                return Token::new(TokenType::Colon, self.eat().to_string(), self.position);
+            }
             _ => {
                 if self.current_character().is_numeric() {
                     let start = self.position;

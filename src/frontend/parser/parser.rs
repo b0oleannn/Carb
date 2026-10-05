@@ -56,6 +56,10 @@ impl Parser {
             self.position += 1;
             return current;
         }
-        error(ColoredString::from("Failed to jump to the next token"));
+        error(ColoredString::from(format!(
+            "Failed to jump to the next token. {}/{}",
+            self.position,
+            self.tokens.len() - 1,
+        )));
     }
 }

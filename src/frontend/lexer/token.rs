@@ -46,6 +46,10 @@ pub(crate) enum TokenType {
     CloseBraces,
     OpenSquareBraces,
     CloseSquareBraces,
+
+    Semicolon,
+    Colon,
+
     //WhiteSpace,
     Bad,
 
