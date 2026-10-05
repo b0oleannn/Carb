@@ -5,7 +5,18 @@ use std::{
 
 use colored::{ColoredString, Colorize};
 
-use crate::frontend::parser::values::{Expression, Program};
+use crate::binding::values::{BoundBinaryExpressionType, BoundExpression, BoundUnaryOperatorType};
+
+#[derive(Debug, Clone)]
+pub struct Program {
+    pub body: Vec<BoundExpression>,
+}
+
+impl Program {
+    pub fn new(body: Vec<BoundExpression>) -> Self {
+        Self { body }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct Block {
@@ -111,42 +122,30 @@ pub fn evaluate_program(program: Program) {
     }
 }
 
-fn evaluate_expression(expression: Expression, block: &mut Block) -> RuntimeValue {
+fn evaluate_expression(expression: BoundExpression, block: &mut Block) -> f64 {
     return match expression {
-        Expression::Number(num, _pos) => RuntimeValue::Number(num),
-        Expression::Bool(b, _pos) => RuntimeValue::Bool(b),
-        Expression::String(str, _pos) => RuntimeValue::String(str),
-        Expression::Null(_pos) => RuntimeValue::Null,
-        Expression::Identifier(identifier, pos) => {
-            evaluate_identifier(identifier, pos, block).clone()
-        }
-        Expression::UnaryExpression {
+        // Expression::Identifier(identifier, pos) => {
+        //     evaluate_identifier(identifier, pos, block).clone()
+        // }
+        BoundExpression::BoundLiteralExpression {
+            value,
+            value_type,
+            position,
+        } => value.get_value(),
+        BoundExpression::BoundUnaryExpression {
             operator,
             operand,
+            value_type,
             position,
         } => evaluate_unary_expression((operator, operand), block, position),
 
-        Expression::VariableDeclaration {
-            is_final,
-            identifier,
-            value,
-            position,
-        } => evaluate_variable_declaration(
-            _VariableDeclaration::new(is_final, identifier, *value, position),
-            block,
-        ),
-
-        Expression::BinaryExpression {
+        BoundExpression::BoundBinaryExpression {
             left,
             operator,
             right,
+            value_type,
             position,
-        } => evaluate_binary_expression(
-            _BinaryExpression::new(*left, operator, *right, position),
-            block,
-        ),
-
-        Expression::Block(expressions, position) => evaluate_block(expressions, position, block),
+        } => evaluate_binary_expression(*left, operator, *right, position, block),
 
         _val => error(ColoredString::from(format!(
             "{} is not implemented yet",
@@ -156,139 +155,76 @@ fn evaluate_expression(expression: Expression, block: &mut Block) -> RuntimeValu
 }
 
 fn evaluate_unary_expression(
-    unary_expression: (String, Box<Expression>),
+    unary_expression: (BoundUnaryOperatorType, Box<BoundExpression>),
     block: &mut Block,
-    position: usize,
-) -> RuntimeValue {
-    match unary_expression.0.as_str() {
-        "+" => evaluate_expression(*unary_expression.1, block),
-        "-" => RuntimeValue::Number(
-            -evaluate_expression(*unary_expression.1, block).get_number_value(position),
-        ),
-        val => error(ColoredString::from(format!(
-            "Unsuported operator {} for unary expression at position {}",
-            val.bold(),
-            position.to_string().bold().blue()
-        ))),
+    _position: usize,
+) -> f64 {
+    match unary_expression.0 {
+        BoundUnaryOperatorType::Identity => evaluate_expression(*unary_expression.1, block),
+        BoundUnaryOperatorType::Negation => -evaluate_expression(*unary_expression.1, block),
     }
 }
 
 fn evaluate_binary_expression(
-    binary_expression: _BinaryExpression,
+    left: BoundExpression,
+    operator: BoundBinaryExpressionType,
+    right: BoundExpression,
+    _position: usize,
     block: &mut Block,
-) -> RuntimeValue {
-    let left: f64 = {
-        let runtime_value = evaluate_expression(binary_expression.left, block);
-        match runtime_value {
-            RuntimeValue::Number(num) => num,
+) -> f64 {
+    let left: f64 = evaluate_expression(left, block);
+    let right: f64 = evaluate_expression(right, block);
 
-            _ => error(ColoredString::from(format!(
-                "{} is implemented only for numbers",
-                "BinaryExpression".bold()
-            ))),
-        }
-    };
-    let right: f64 = {
-        let runtime_value = evaluate_expression(binary_expression.right, block);
-        match runtime_value {
-            RuntimeValue::Number(num) => num,
-
-            _ => error(ColoredString::from(format!(
-                "{} is implemented only for numbers",
-                "BinaryExpression".bold()
-            ))),
-        }
-    };
-    return match binary_expression.operator.as_str() {
-        "+" => RuntimeValue::Number(left + right),
-        "-" => RuntimeValue::Number(left - right),
-
-        "/" => RuntimeValue::Number(left / right),
-        "*" => RuntimeValue::Number(left * right),
-        val => error(ColoredString::from(format!(
-            "Unsuported operation {} at position {}",
-            val.bold(),
-            binary_expression.position.to_string().blue()
-        ))),
+    return match operator {
+        BoundBinaryExpressionType::Addition => left + right,
+        BoundBinaryExpressionType::Substraction => left - right,
+        BoundBinaryExpressionType::Multiplication => left * right,
+        BoundBinaryExpressionType::Devision => left / right,
     };
 }
+//
+// fn evaluate_variable_declaration(
+//     variable_declaration: _VariableDeclaration,
+//     block: &mut Block,
+// ) -> RuntimeValue {
+//     let val = evaluate_expression(variable_declaration.value, block);
+//     match block.insert_variable(
+//         variable_declaration.is_final,
+//         &variable_declaration.identifier,
+//         val,
+//     ) {
+//         Ok(value) => value.clone(),
+//         Err(message) => error(ColoredString::from(format!(
+//             "{} at position {}",
+//             message,
+//             variable_declaration.position.to_string().bold().blue()
+//         ))),
+//     }
+// }
+// //
+// fn evaluate_identifier(identifier: String, position: usize, block: &mut Block) -> &RuntimeValue {
+//     return match block.inspect_variable(&identifier) {
+//         Some(val) => val,
+//         None => error(ColoredString::from(format!(
+//             "Variable '{}' wasn`t found in the block at position {}",
+//             identifier.bold(),
+//             position.to_string().bold().blue()
+//         ))),
+//     };
+// }
 
-fn evaluate_variable_declaration(
-    variable_declaration: _VariableDeclaration,
-    block: &mut Block,
-) -> RuntimeValue {
-    let val = evaluate_expression(variable_declaration.value, block);
-    match block.insert_variable(
-        variable_declaration.is_final,
-        &variable_declaration.identifier,
-        val,
-    ) {
-        Ok(value) => value.clone(),
-        Err(message) => error(ColoredString::from(format!(
-            "{} at position {}",
-            message,
-            variable_declaration.position.to_string().bold().blue()
-        ))),
-    }
-}
-
-fn evaluate_identifier(identifier: String, position: usize, block: &mut Block) -> &RuntimeValue {
-    return match block.inspect_variable(&identifier) {
-        Some(val) => val,
-        None => error(ColoredString::from(format!(
-            "Variable '{}' wasn`t found in the block at position {}",
-            identifier.bold(),
-            position.to_string().bold().blue()
-        ))),
-    };
-}
-
-fn evaluate_block(
-    expressions: Vec<Expression>,
-    position: usize,
-    parent_block: &mut Block,
-) -> RuntimeValue {
-    let mut child_block = Block::new(parent_block.clone());
-    let mut last = RuntimeValue::Null;
-    for expression in expressions {
-        last = evaluate_expression(expression, &mut child_block);
-    }
-    last
-}
-
-struct _VariableDeclaration {
-    is_final: bool,
-    identifier: String,
-    value: Expression,
-    position: usize,
-}
-impl _VariableDeclaration {
-    fn new(is_final: bool, identifier: String, value: Expression, position: usize) -> Self {
-        Self {
-            is_final,
-            identifier,
-            value,
-            position,
-        }
-    }
-}
-
-struct _BinaryExpression {
-    left: Expression,
-    operator: String,
-    right: Expression,
-    position: usize,
-}
-impl _BinaryExpression {
-    fn new(left: Expression, operator: String, right: Expression, position: usize) -> Self {
-        Self {
-            left,
-            operator,
-            right,
-            position,
-        }
-    }
-}
+// fn evaluate_block(
+//     expressions: Vec<Expression>,
+//     position: usize,
+//     parent_block: &mut Block,
+// ) -> RuntimeValue {
+//     let mut child_block = Block::new(parent_block.clone());
+//     let mut last = RuntimeValue::Null;
+//     for expression in expressions {
+//         last = evaluate_expression(expression, &mut child_block);
+//     }
+//     last
+// }
 
 pub fn error(message: ColoredString) -> ! {
     println!(

@@ -4,7 +4,7 @@ use crate::frontend::{
         lexer::Lexer,
         token::{Token, TokenType},
     },
-    parser::{expression::parse_expression, values::Program},
+    parser::{expression::parse_expression, values::Expression},
 };
 
 use colored::{ColoredString, Colorize};
@@ -26,12 +26,12 @@ impl Parser {
         }
     }
 
-    pub fn parse(&mut self) -> Program {
-        let mut statements = Vec::new();
+    pub fn produce_ast(&mut self) -> Vec<Expression> {
+        let mut expressions = Vec::new();
         while self.position < self.tokens.len() && !self.is_eof() {
-            statements.push(parse_expression(self));
+            expressions.push(parse_expression(self));
         }
-        Program::new(statements)
+        expressions
     }
 
     pub fn current_token(&self) -> &Token {

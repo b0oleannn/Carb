@@ -1,15 +1,4 @@
 #[derive(Debug, Clone)]
-pub struct Program {
-    pub body: Vec<Expression>,
-}
-
-impl Program {
-    pub fn new(body: Vec<Expression>) -> Self {
-        Self { body }
-    }
-}
-
-#[derive(Debug, Clone)]
 pub enum Expression {
     Number(f64, usize),
     String(String, usize),

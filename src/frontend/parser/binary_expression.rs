@@ -8,7 +8,7 @@ pub fn parse_binary_expression(parser: &mut Parser, parent_precedence: usize) ->
     let unary_operator_precedence: usize =
         get_unary_operator_precedence(&parser.current_token().value);
 
-    if unary_operator_precedence >= parent_precedence {
+    if unary_operator_precedence != 0 && unary_operator_precedence >= parent_precedence {
         let operator = parser.eat().value;
         let operand = parse_binary_expression(parser, unary_operator_precedence);
         left = Expression::UnaryExpression {
