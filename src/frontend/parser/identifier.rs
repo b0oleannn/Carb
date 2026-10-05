@@ -31,5 +31,6 @@ fn parse_variable_assignment(parser: &mut Parser) -> Expression {
         is_final: false,
         identifier,
         value: Box::new(expr),
+        position: parser.position,
     }
 }

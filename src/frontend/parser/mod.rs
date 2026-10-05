@@ -71,6 +71,7 @@ fn print_expression(expr: &Expression, is_first: bool, prefix: &str, is_last: bo
             is_final,
             identifier,
             value,
+            position: _,
         } => {
             println!("{prefix}{marker}{}", "VariableDeclaration".bold());
             let mut child_prefix = String::new();

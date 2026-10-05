@@ -31,5 +31,6 @@ pub enum Expression {
         is_final: bool,
         identifier: String,
         value: Box<Expression>,
+        position: usize,
     },
 }

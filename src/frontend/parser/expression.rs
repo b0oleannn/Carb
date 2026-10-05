@@ -29,6 +29,7 @@ fn parse_variable_declaration(parser: &mut Parser) -> Expression {
                 is_final,
                 identifier,
                 value: Box::from(value),
+                position: parser.position,
             }
         }
         ";" => {
@@ -43,6 +44,7 @@ fn parse_variable_declaration(parser: &mut Parser) -> Expression {
                 is_final: false,
                 identifier,
                 value: Box::from(Expression::Null(parser.position)),
+                position: parser.position,
             }
         }
         _ => error(ColoredString::from(format!(

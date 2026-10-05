@@ -1,9 +1,6 @@
 use std::fs;
 
-use crate::{
-    evaluator::Evaluator,
-    frontend::parser::{parser::Parser, pretty_print},
-};
+use crate::frontend::parser::{parser::Parser, pretty_print};
 pub mod evaluator;
 pub mod frontend;
 
@@ -14,12 +11,10 @@ fn main() {
 
 pub fn evaluate_file(file_path: &str) {
     let input = fs::read_to_string(file_path).unwrap();
-
-    let mut evaluator = Evaluator::new();
     let mut parser = Parser::new(input);
 
     let parsed = parser.parse();
     pretty_print(parsed.clone());
 
-    evaluator.evaluate_program(parsed)
+    evaluator::evaluate_program(parsed)
 }
