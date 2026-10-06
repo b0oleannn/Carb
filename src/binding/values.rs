@@ -1,7 +1,29 @@
 use colored::{ColoredString, Colorize};
 
 use crate::{binding::error, frontend::parser::values::Expression};
-
+#[derive(Clone, Debug, PartialEq)]
+pub enum BoundStatement {
+    BoundVariableDeclaration {
+        is_final: bool,
+        identifier: String,
+        value: Box<BoundExpression>,
+        position: usize,
+    },
+    BoundExpression(BoundExpression),
+}
+impl BoundStatement {
+    pub fn get_value_type(&self) -> ValueType {
+        match self {
+            BoundStatement::BoundVariableDeclaration {
+                is_final,
+                identifier,
+                value,
+                position,
+            } => ValueType::Void,
+            BoundStatement::BoundExpression(bound_expression) => bound_expression.get_value_type(),
+        }
+    }
+}
 #[derive(Clone, Debug, PartialEq)]
 pub enum BoundExpression {
     BoundLiteralExpression {
@@ -22,28 +44,60 @@ pub enum BoundExpression {
         result_type: ValueType,
         position: usize,
     },
+    BoundBlock {
+        bounded_statements: Vec<BoundStatement>,
+        value_type: ValueType,
+        position: usize,
+    },
+    BoundReturn {
+        value: Option<Box<BoundExpression>>,
+        value_type: ValueType,
+        position: usize,
+    },
+    BoundVariableAssignment {
+        identifier: String,
+        value: Box<BoundExpression>,
+        value_type: ValueType,
+        position: usize,
+    },
 }
 impl BoundExpression {
     pub fn get_value_type(&self) -> ValueType {
         match self {
+            BoundExpression::BoundReturn {
+                value: _,
+                value_type,
+                position: _,
+            } => *value_type,
             BoundExpression::BoundLiteralExpression {
                 value: _,
                 value_type,
                 position: _,
-            } => value_type.clone(),
+            } => *value_type,
             BoundExpression::BoundUnaryExpression {
                 operator: _,
                 operand: _,
                 value_type,
                 position: _,
-            } => value_type.clone(),
+            } => *value_type,
             BoundExpression::BoundBinaryExpression {
                 left: _,
                 operator: _,
                 right: _,
                 result_type: value_type,
                 position: _,
-            } => value_type.clone(),
+            } => *value_type,
+            BoundExpression::BoundBlock {
+                bounded_statements: _,
+                value_type,
+                position: _,
+            } => *value_type,
+            BoundExpression::BoundVariableAssignment {
+                identifier: _,
+                value: _,
+                value_type,
+                position: _,
+            } => *value_type,
         }
     }
 }
@@ -114,6 +168,7 @@ pub enum ValueType {
     String,
     Bool,
     Null,
+    Void,
 }
 impl ValueType {
     pub fn to_string(&self) -> String {

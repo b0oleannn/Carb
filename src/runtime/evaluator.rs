@@ -1,158 +1,61 @@
-use std::{
-    collections::{HashMap, HashSet},
-    fmt::Display,
-    process::exit,
-};
+use std::process::exit;
 
 use colored::{ColoredString, Colorize};
 
-use crate::binding::values::{
-    BoundBinaryExpressionType, BoundExpression, BoundUnaryOperatorType, LiteralValue, ValueType,
+use crate::{
+    binding::values::{
+        BoundBinaryExpressionType, BoundExpression, BoundStatement, BoundUnaryOperatorType,
+        LiteralValue, ValueType,
+    },
+    runtime::values::{Block, Program, RuntimeValue},
 };
 
-#[derive(Debug, Clone)]
-pub struct Program {
-    pub body: Vec<BoundExpression>,
-}
-
-impl Program {
-    pub fn new(body: Vec<BoundExpression>) -> Self {
-        Self { body }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Block {
-    variables: HashMap<String, RuntimeValue>,
-    finals: HashSet<String>,
-
-    parent_block: Option<Box<Block>>,
-}
-
-impl Block {
-    pub fn new(parent_block: Block) -> Self {
-        Self {
-            variables: HashMap::new(),
-            finals: HashSet::new(),
-            parent_block: Option::from(Box::new(parent_block)),
-        }
-    }
-    pub fn program_block() -> Self {
-        Self {
-            variables: HashMap::new(),
-            finals: HashSet::new(),
-            parent_block: Option::None,
-        }
-    }
-
-    fn insert_variable(
-        &mut self,
-        is_final: bool,
-        identifier: &str,
-        value: RuntimeValue,
-    ) -> Result<RuntimeValue, ColoredString> {
-        if self.is_variable_final(identifier) {
-            return Result::Err(ColoredString::from(format!(
-                "Invalid operation. Cannot reassign final variable`s '{}' value",
-                identifier.bold(),
-            )));
-        }
-        self.variables.insert(identifier.to_string(), value.clone());
-        if is_final {
-            self.finals.insert(identifier.to_string());
-        }
-        Result::Ok(value)
-    }
-
-    fn is_variable_final(&self, identifier: &str) -> bool {
-        if self.finals.contains(identifier) {
-            return true;
-        }
-        if let Some(parent) = &self.parent_block {
-            return parent.is_variable_final(identifier);
-        }
-        false
-    }
-
-    fn inspect_variable(&self, identifier: &str) -> Option<&RuntimeValue> {
-        if let Some(val) = self.variables.get(identifier) {
-            return Option::from(val);
-        }
-
-        if let Some(parent) = &self.parent_block {
-            return parent.inspect_variable(identifier);
-        }
-
-        Option::None
-
-        // error(ColoredString::from(format!(
-        //     "Variable {} was not found in the block.",
-        //     identifier.bold(),
-        // )))
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum RuntimeValue {
-    Number(f64),
-    String(String),
-    Null,
-    Bool(bool),
-}
-impl RuntimeValue {
-    pub fn expect_value_type<T>(self) -> T
-    where
-        T: TryFrom<RuntimeValue>,
-        <T as TryFrom<RuntimeValue>>::Error: Display,
-    {
-        T::try_from(self).unwrap_or_else(|err| {
-            error(ColoredString::from(format!("{}", err)));
-        })
-    }
-    fn get_value_type(&self) -> ValueType {
-        match self {
-            RuntimeValue::Bool(_) => ValueType::Bool,
-            RuntimeValue::String(_) => ValueType::String,
-            RuntimeValue::Number(_) => ValueType::Number,
-            RuntimeValue::Null => ValueType::Null,
-        }
-    }
-    pub fn to_string(self) -> String {
-        match self {
-            RuntimeValue::Number(val) => val.to_string(),
-            RuntimeValue::String(val) => val.to_string(),
-            RuntimeValue::Null => String::from("null"),
-            RuntimeValue::Bool(val) => val.to_string(),
-        }
-    }
-    pub fn is_bool(&self) -> bool {
-        return self.get_value_type().eq(&ValueType::Bool);
-    }
-
-    pub fn is_number(&self) -> bool {
-        return self.get_value_type().eq(&ValueType::Number);
-    }
-
-    pub fn is_string(&self) -> bool {
-        return self.get_value_type().eq(&ValueType::String);
-    }
-
-    pub fn is_null(&self) -> bool {
-        return self.get_value_type().eq(&ValueType::Null);
-    }
-}
 pub fn evaluate_program(program: Program) {
     let mut program_block = Block::program_block();
-    for expression in program.body {
-        println!("{:?}", evaluate_expression(expression, &mut program_block));
+    for statement in program.body {
+        println!("{:?}", evaluate_statement(statement, &mut program_block));
+    }
+}
+fn evaluate_statement(statement: BoundStatement, block: &mut Block) -> Option<RuntimeValue> {
+    match statement {
+        BoundStatement::BoundVariableDeclaration {
+            is_final,
+            identifier,
+            value,
+            position,
+        } => {
+            evaluate_variable_declaration(is_final, identifier, value, position, block);
+            Option::None
+        }
+        BoundStatement::BoundExpression(bound_expression) => {
+            Option::from(evaluate_expression(bound_expression, block))
+        }
     }
 }
 
+fn evaluate_variable_declaration(
+    is_final: bool,
+    identifier: String,
+    value: Box<BoundExpression>,
+    position: usize,
+    block: &mut Block,
+) {
+    let val = evaluate_expression(*value, block);
+    match block.declare_variable(is_final, &identifier, val) {
+        Ok(v) => {
+            println!("Declared variable {identifier}: {v:?}")
+        }
+        Err(msg) => error(ColoredString::from(format!(
+            "{msg} at position `{}`",
+            position.to_string().bold().blue(),
+        ))),
+    }
+}
 fn evaluate_expression(expression: BoundExpression, block: &mut Block) -> RuntimeValue {
     return match expression {
         BoundExpression::BoundLiteralExpression {
             value,
-            value_type,
+            value_type: _,
             position,
         } => {
             return match value {
@@ -168,20 +71,26 @@ fn evaluate_expression(expression: BoundExpression, block: &mut Block) -> Runtim
                 ))),
             };
         }
+        BoundExpression::BoundVariableAssignment {
+            identifier,
+            value,
+            value_type,
+            position,
+        } => evaluate_variable_assignment(identifier, value, value_type, position, block),
         BoundExpression::BoundUnaryExpression {
             operator,
             operand,
             value_type,
             position,
-        } => evaluate_unary_expression((operator, operand), block, position),
+        } => evaluate_unary_expression((operator, operand), value_type, block, position),
 
         BoundExpression::BoundBinaryExpression {
             left,
             operator,
             right,
-            result_type: value_type,
+            result_type,
             position,
-        } => evaluate_binary_expression(*left, operator, *right, position, block),
+        } => evaluate_binary_expression(*left, operator, *right, result_type, position, block),
         _val => error(ColoredString::from(format!(
             "{} is not implemented yet",
             format!("{_val:?}").bold().blue()
@@ -189,8 +98,56 @@ fn evaluate_expression(expression: BoundExpression, block: &mut Block) -> Runtim
     };
 }
 
+fn evaluate_variable_assignment(
+    identifier: String,
+    value: Box<BoundExpression>,
+    value_type: ValueType,
+    position: usize,
+    block: &mut Block,
+) -> RuntimeValue {
+    let val = evaluate_expression(*value, block);
+    if let Some(stored_val) = block.inspect_variable(&identifier) {
+        if stored_val.is_null()
+            || value_type.eq(&ValueType::Null)
+            || stored_val.get_value_type().eq(&value_type)
+        {
+            match block.assign_variable(&identifier, val) {
+                Ok(run) => return run,
+                Err(err) => {
+                    error(ColoredString::from(format!(
+                        "{err} at position {}",
+                        position.to_string().bold().blue()
+                    )));
+                }
+            }
+        } else {
+            error(ColoredString::from(format!(
+                "Type mismatch between value {}: {} and variable {}: {} ({}) at position {}",
+                val.to_string().bold().yellow(),
+                value_type.to_string().bold().green(),
+                identifier.to_string().bold().yellow(),
+                stored_val.clone().to_string().bold().white(),
+                stored_val
+                    .get_value_type()
+                    .clone()
+                    .to_string()
+                    .bold()
+                    .green(),
+                position.to_string().bold().blue()
+            )));
+        }
+    } else {
+        error(ColoredString::from(format!(
+            "Variable {} wasn`t found in the block at position {}",
+            identifier.to_string().bold().yellow(),
+            position.to_string().bold().blue()
+        )));
+    }
+}
+
 fn evaluate_unary_expression(
     unary_expression: (BoundUnaryOperatorType, Box<BoundExpression>),
+    _result_type: ValueType,
     block: &mut Block,
     _position: usize,
 ) -> RuntimeValue {
@@ -209,24 +166,26 @@ fn evaluate_binary_expression(
     left: BoundExpression,
     operator: BoundBinaryExpressionType,
     right: BoundExpression,
+    result_type: ValueType,
     position: usize,
     block: &mut Block,
 ) -> RuntimeValue {
     let left = evaluate_expression(left, block);
     let right = evaluate_expression(right, block);
 
-    if left.is_number() && right.is_number() {
-        return evaluate_number_binary_expression(left, right, operator, position);
-    } else if left.is_bool() && right.is_bool() {
-        return evaluate_bool_binary_expression(left, right, operator, position);
+    match result_type {
+        ValueType::Number => {
+            return evaluate_number_binary_expression(left, right, operator, position);
+        }
+        ValueType::Bool => return evaluate_bool_binary_expression(left, right, operator, position),
+        _ => error(ColoredString::from(format!(
+            "Binary expression in not implemented for {} {} {} at position {}",
+            left.to_string().bold(),
+            format!("{:?}", operator).bold().yellow(),
+            right.to_string().bold(),
+            position.to_string().bold().blue()
+        ))),
     }
-    error(ColoredString::from(format!(
-        "Binary expression in not implemented for {} {} {} at position {}",
-        left.to_string().bold(),
-        format!("{:?}", operator).bold().yellow(),
-        right.to_string().bold(),
-        position.to_string().bold().blue()
-    )));
 }
 
 fn evaluate_bool_binary_expression(

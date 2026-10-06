@@ -4,10 +4,7 @@ use crate::{
     binding::{
         binder::bind_expression,
         error,
-        values::{
-            BoundBinaryExpressionType::{self, Is},
-            BoundExpression, ValueType,
-        },
+        values::{BoundBinaryExpressionType, BoundExpression, ValueType},
     },
     frontend::parser::values::Expression,
 };

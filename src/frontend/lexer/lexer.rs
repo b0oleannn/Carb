@@ -161,6 +161,7 @@ impl Lexer {
                 ("null".to_string(), TokenType::Null),
                 ("if".to_string(), TokenType::If),
                 ("else".to_string(), TokenType::Else),
+                ("return".to_string(), TokenType::Return),
             ]),
         };
     }

@@ -3,14 +3,14 @@ use colored::{ColoredString, Colorize};
 use crate::frontend::{
     error,
     lexer::token::TokenType,
-    parser::{binary_expression::parse_binary_expression, parser::Parser, values::Expression},
+    parser::{
+        binary_expression::parse_binary_expression, identifier::parse_identifier, parser::Parser,
+        statement::parse_statement, values::Expression,
+    },
 };
 
 pub fn parse_expression(parser: &mut Parser) -> Expression {
-    return match parser.current_token().token_type {
-        //TokenType::Letf | TokenType::Let => parse_variable_declaration(parser),
-        _ => parse_binary_expression(parser, 0),
-    };
+    parse_binary_expression(parser, 0)
 }
 
 pub fn parse_primary_expression(parser: &mut Parser) -> Expression {
@@ -38,14 +38,28 @@ pub fn parse_primary_expression(parser: &mut Parser) -> Expression {
             position: parser.eat().position,
         },
 
-        TokenType::Semicolon => Expression::Null,
-
         TokenType::OpenParenthesis => {
             parser.eat(); // (
             let result = parse_expression(parser); // expr
             parser.expect(TokenType::CloseParenthesis); // )
             result
         }
+        TokenType::OpenBraces => parse_block(parser),
+        TokenType::Return => {
+            parser.eat();
+            let value = if parser.current_token().token_type.eq(&TokenType::Semicolon) {
+                Option::None
+            } else {
+                Option::Some(Box::new(parse_expression(parser)))
+            };
+            parser.expect(TokenType::Semicolon);
+
+            Expression::Return {
+                value: value,
+                position: parser.position - 1,
+            }
+        }
+        TokenType::Identifier => parse_identifier(parser),
 
         _ => error(ColoredString::from(format!(
             "Failed to parse token {} : '{}' at position {}",
@@ -56,18 +70,18 @@ pub fn parse_primary_expression(parser: &mut Parser) -> Expression {
     };
 }
 
-// fn parse_block(parser: &mut Parser) -> Expression {
-//     let mut body = Vec::new();
-//     parser.eat(); // {
-//
-//     while !parser
-//         .current_token()
-//         .token_type
-//         .eq(&TokenType::CloseBraces)
-//         && !parser.is_eof()
-//     {
-//         body.push(parse_expression(parser));
-//     }
-//     parser.eat();
-//     return Expression::Block(body, parser.current_token().position);
-// }
+fn parse_block(parser: &mut Parser) -> Expression {
+    let mut body = Vec::new();
+    parser.eat(); // {
+
+    while !parser
+        .current_token()
+        .token_type
+        .eq(&TokenType::CloseBraces)
+        && !parser.is_eof()
+    {
+        body.push(parse_statement(parser));
+    }
+    parser.eat();
+    return Expression::Block(body, parser.current_token().position);
+}

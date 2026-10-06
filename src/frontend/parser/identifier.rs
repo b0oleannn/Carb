@@ -19,8 +19,8 @@ fn parse_variable_assignment(parser: &mut Parser) -> Expression {
     let identifier = parser.eat().value;
     parser.expect(TokenType::Equals);
     let expr = parse_expression(parser);
-    Expression::VariableDeclaration {
-        is_final: false,
+    parser.expect(TokenType::Semicolon);
+    Expression::VariableAssignment {
         identifier,
         value: Box::new(expr),
         position: parser.position,

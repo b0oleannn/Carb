@@ -1,25 +1,53 @@
 use colored::Colorize;
 
 use crate::{
-    binding::values::BoundExpression, evaluator::Program, frontend::parser::values::Expression,
+    binding::values::{BoundExpression, BoundStatement},
+    frontend::parser::values::{Expression, Statement},
+    runtime::values::Program,
 };
 
 mod binary_expression;
 mod expression;
 mod identifier;
 pub mod parser;
+mod statement;
 pub mod values;
 
-pub fn pretty_print_ast(expressions: Vec<Expression>) {
+pub fn pretty_print_ast(statements: &Vec<Statement>) {
     println!("{}", "Program".bold().yellow());
 
-    for i in 0..expressions.len() {
-        print_expression(
-            expressions.get(i).unwrap(),
+    for i in 0..statements.len() {
+        print_statement(
+            statements.get(i).unwrap(),
             false,
             "",
-            i == expressions.len() - 1,
+            i == statements.len() - 1,
         );
+    }
+}
+
+pub fn print_statement(statement: &Statement, is_first: bool, prefix: &str, is_last: bool) {
+    let mut marker = "";
+    if !is_first {
+        marker = if is_last { "└── " } else { "├── " };
+    }
+    match statement {
+        Statement::VariableDeclaration {
+            is_final,
+            identifier,
+            value,
+            position: _,
+        } => {
+            println!("{prefix}{marker}{}", "VariableDeclaration".bold());
+            let mut child_prefix = String::new();
+            if !is_first {
+                child_prefix = format!("{prefix}{}", if is_last { "    " } else { "│   " });
+            }
+            println!("{child_prefix}├── IsFinal: {is_final:?}");
+            println!("{child_prefix}├── Identifier: {identifier:?}");
+            print_expression(&value, false, &child_prefix, true);
+        }
+        Statement::Expression(expression) => print_expression(expression, false, prefix, is_last),
     }
 }
 fn print_expression(expr: &Expression, is_first: bool, prefix: &str, is_last: bool) {
@@ -31,6 +59,19 @@ fn print_expression(expr: &Expression, is_first: bool, prefix: &str, is_last: bo
         marker = if is_last { "└── " } else { "├── " };
     }
     match expr {
+        Expression::VariableAssignment {
+            identifier,
+            value,
+            position: _,
+        } => {
+            println!("{prefix}{marker}{}", "VariableAssignment".bold());
+            let mut child_prefix = String::new();
+            if !is_first {
+                child_prefix = format!("{prefix}{}", if is_last { "    " } else { "│   " });
+            }
+            println!("{child_prefix}├── Identifier: {identifier:?}");
+            print_expression(&value, false, &child_prefix, true);
+        }
         Expression::BinaryExpression {
             left,
             operator,
@@ -68,19 +109,44 @@ fn print_expression(expr: &Expression, is_first: bool, prefix: &str, is_last: bo
             println!("{prefix}{marker}{}", "LiteralExpression".bold());
             println!("{child_prefix}└── Value: {value:?}");
         }
-        Expression::Number(_) => todo!(),
-        Expression::String(_) => todo!(),
-        Expression::Bool(_) => todo!(),
-        Expression::Null => todo!(),
+
+        Expression::Block(expressions, _) => {
+            println!("{prefix}{marker}{}", "Block".bold());
+            let mut child_prefix = String::new();
+            if !is_first {
+                child_prefix = format!("{prefix}{}", if is_last { "    " } else { "│   " });
+            }
+            for i in 0..expressions.len() {
+                print_statement(
+                    expressions.get(i).unwrap(),
+                    false,
+                    &child_prefix,
+                    i == expressions.len() - 1,
+                );
+            }
+        }
+
+        Expression::Return { value, position: _ } => {
+            let mut child_prefix = String::new();
+            if !is_first {
+                child_prefix = format!("{prefix}{}", if is_last { "    " } else { "│   " });
+            }
+
+            println!("{prefix}{marker}{}", "Return".bold());
+            match value {
+                Some(v) => {
+                    print_expression(&v, false, &child_prefix, true);
+                }
+                None => println!("{child_prefix}└── Void"),
+            }
+        }
+
+        Expression::Number(val) => println!("{prefix}{marker}Number : {val:?}",),
+        Expression::String(val) => println!("{prefix}{marker}String : {val:?}",),
+        Expression::Bool(val) => println!("{prefix}{marker}Bool : {val:?}",),
+        Expression::Null => println!("{prefix}{marker}{}", "Null".bold()),
 
         Expression::Identifier(_, _) => todo!(),
-        Expression::Block(expressions, _) => todo!(),
-        Expression::VariableDeclaration {
-            is_final,
-            identifier,
-            value,
-            position,
-        } => todo!(),
     }
 }
 
@@ -88,7 +154,7 @@ pub fn pretty_bounded_print(program: &Program) {
     println!("{}", "Program".bold().yellow());
 
     for i in 0..program.body.len() {
-        print_bounded_expression(
+        print_bounded_statement(
             program.body.get(i).unwrap(),
             false,
             "",
@@ -96,7 +162,38 @@ pub fn pretty_bounded_print(program: &Program) {
         );
     }
 }
-fn print_bounded_expression(expr: &BoundExpression, is_first: bool, prefix: &str, is_last: bool) {
+pub fn print_bounded_statement(
+    statement: &BoundStatement,
+    is_first: bool,
+    prefix: &str,
+    is_last: bool,
+) {
+    let mut marker = "";
+    if !is_first {
+        marker = if is_last { "└── " } else { "├── " };
+    }
+    match statement {
+        BoundStatement::BoundVariableDeclaration {
+            is_final,
+            identifier,
+            value,
+            position: _,
+        } => {
+            println!("{prefix}{marker}{}", "BoundVariableDeclaration".bold());
+            let mut child_prefix = String::new();
+            if !is_first {
+                child_prefix = format!("{prefix}{}", if is_last { "    " } else { "│   " });
+            }
+            println!("{child_prefix}├── IsFinal: {is_final:?}");
+            println!("{child_prefix}├── Identifier: {identifier:?}");
+            print_bound_expression(&value, false, &child_prefix, true);
+        }
+        BoundStatement::BoundExpression(bound_expression) => {
+            print_bound_expression(bound_expression, is_first, prefix, is_last)
+        }
+    }
+}
+fn print_bound_expression(expr: &BoundExpression, is_first: bool, prefix: &str, is_last: bool) {
     // ├───
     // ────
     // └───
@@ -112,15 +209,15 @@ fn print_bounded_expression(expr: &BoundExpression, is_first: bool, prefix: &str
             result_type: value_type,
             position: _,
         } => {
-            println!("{prefix}{marker}{}", "BinaryExpression".bold());
+            println!("{prefix}{marker}{}", "BoundBinaryExpression".bold());
             let mut child_prefix = String::new();
             if !is_first {
                 child_prefix = format!("{prefix}{}", if is_last { "    " } else { "│   " });
             }
-            print_bounded_expression(&left, false, &child_prefix, false);
+            print_bound_expression(&left, false, &child_prefix, false);
             println!("{child_prefix}├── Operator: {operator:?}");
             println!("{child_prefix}├── ValueType: {value_type:?}");
-            print_bounded_expression(&right, false, &child_prefix, true);
+            print_bound_expression(&right, false, &child_prefix, true);
         }
         BoundExpression::BoundUnaryExpression {
             operator,
@@ -128,14 +225,14 @@ fn print_bounded_expression(expr: &BoundExpression, is_first: bool, prefix: &str
             value_type,
             position: _,
         } => {
-            println!("{prefix}{marker}{}", "UnaryExpression".bold());
+            println!("{prefix}{marker}{}", "BoundUnaryExpression".bold());
             let mut child_prefix = String::new();
             if !is_first {
                 child_prefix = format!("{prefix}{}", if is_last { "    " } else { "│   " });
             }
             println!("{child_prefix}├── Operator: {operator:?}");
             println!("{child_prefix}├── ValueType: {value_type:?}");
-            print_bounded_expression(&operand, false, &child_prefix, true);
+            print_bound_expression(&operand, false, &child_prefix, true);
         }
         BoundExpression::BoundLiteralExpression {
             value,
@@ -147,9 +244,65 @@ fn print_bounded_expression(expr: &BoundExpression, is_first: bool, prefix: &str
                 child_prefix = format!("{prefix}{}", if is_last { "    " } else { "│   " });
             }
 
-            println!("{prefix}{marker}{}", "LiteralExpression".bold());
+            println!("{prefix}{marker}{}", "BoundLiteralExpression".bold());
             println!("{child_prefix}├── ValueType: {value_type:?}");
             println!("{child_prefix}└── Value: {value:?}");
+        }
+        BoundExpression::BoundReturn {
+            value,
+            value_type,
+            position: _,
+        } => {
+            let mut child_prefix = String::new();
+            if !is_first {
+                child_prefix = format!("{prefix}{}", if is_last { "    " } else { "│   " });
+            }
+
+            println!("{prefix}{marker}{}", "BoundReturn".bold());
+            match value {
+                Some(v) => {
+                    println!("{child_prefix}├── Type: {value_type:?}");
+                    print_bound_expression(&v, false, &child_prefix, true);
+                }
+                None => println!("{child_prefix}└── Void"),
+            }
+        }
+
+        BoundExpression::BoundBlock {
+            bounded_statements: statements,
+            value_type,
+            position: _,
+        } => {
+            println!("{prefix}{marker}{}", "BoundBlock".bold());
+            let mut child_prefix = String::new();
+            if !is_first {
+                child_prefix = format!("{prefix}{}", if is_last { "    " } else { "│   " });
+            }
+            println!("{child_prefix}├── Type: {value_type:?}");
+
+            for i in 0..statements.len() {
+                print_bounded_statement(
+                    statements.get(i).unwrap(),
+                    false,
+                    &child_prefix,
+                    i == statements.len() - 1,
+                );
+            }
+        }
+        BoundExpression::BoundVariableAssignment {
+            identifier,
+            value,
+            value_type,
+            position: _,
+        } => {
+            println!("{prefix}{marker}{}", "VariableAssignment".bold());
+            let mut child_prefix = String::new();
+            if !is_first {
+                child_prefix = format!("{prefix}{}", if is_last { "    " } else { "│   " });
+            }
+            println!("{child_prefix}├── Identifier: {identifier:?}");
+            println!("{child_prefix}├── ValueType: {value_type:?}");
+            print_bound_expression(&value, false, &child_prefix, true);
         }
     }
 }

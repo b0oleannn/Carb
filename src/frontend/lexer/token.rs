@@ -61,11 +61,16 @@ pub enum TokenType {
     Semicolon,
     Colon,
 
+    DoubleEquals,
+    NotEquals,
+
     //WhiteSpace,
     Bad,
 
     If,
     Else,
+
+    Return,
 
     Exclamation,
     And,
@@ -73,8 +78,6 @@ pub enum TokenType {
 
     EOF,
     Ignore,
-    DoubleEquals,
-    NotEquals,
 }
 
 impl TokenType {

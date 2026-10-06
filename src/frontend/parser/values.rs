@@ -1,8 +1,14 @@
-use std::fmt::Alignment::Left;
+#[derive(Debug, Clone)]
 
-use colored::{ColoredString, Colorize};
-
-use crate::{binding::values::ValueType, frontend::error};
+pub enum Statement {
+    VariableDeclaration {
+        is_final: bool,
+        identifier: String,
+        value: Expression,
+        position: usize,
+    },
+    Expression(Expression),
+}
 
 #[derive(Debug, Clone)]
 pub enum Expression {
@@ -18,7 +24,7 @@ pub enum Expression {
 
     Identifier(String, usize),
 
-    Block(Vec<Expression>, usize),
+    Block(Vec<Statement>, usize),
 
     BinaryExpression {
         left: Box<Expression>,
@@ -31,9 +37,11 @@ pub enum Expression {
         operand: Box<Expression>,
         position: usize,
     },
-
-    VariableDeclaration {
-        is_final: bool,
+    Return {
+        value: Option<Box<Expression>>,
+        position: usize,
+    },
+    VariableAssignment {
         identifier: String,
         value: Box<Expression>,
         position: usize,
