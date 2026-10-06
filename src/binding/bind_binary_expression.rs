@@ -47,6 +47,11 @@ pub fn get_binary_operator_type(
             _ => {}
         }
     }
+    match operator {
+        "==" => return BoundBinaryExpressionType::Is,
+        "!=" => return BoundBinaryExpressionType::IsNot,
+        _ => {}
+    }
     error(ColoredString::from(format!(
         "Unexpected binary operator {} between `{}` and `{}`",
         operator.bold(),

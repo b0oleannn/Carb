@@ -73,6 +73,8 @@ pub enum TokenType {
 
     EOF,
     Ignore,
+    DoubleEquals,
+    NotEquals,
 }
 
 impl TokenType {

@@ -50,6 +50,11 @@ impl Lexer {
             }
 
             '=' => {
+                if self.peak(1).eq(&'=') {
+                    self.eat();
+                    self.eat();
+                    return Token::new(TokenType::DoubleEquals, "==".to_string(), self.position);
+                }
                 return Token::new(TokenType::Equals, self.eat().to_string(), self.position);
             }
 
@@ -71,6 +76,11 @@ impl Lexer {
             }
 
             '!' => {
+                if self.peak(1).eq(&'=') {
+                    self.eat();
+                    self.eat();
+                    return Token::new(TokenType::NotEquals, "!=".to_string(), self.position);
+                }
                 return Token::new(
                     TokenType::Exclamation,
                     self.eat().to_string(),

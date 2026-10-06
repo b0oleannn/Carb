@@ -56,6 +56,8 @@ pub enum BoundBinaryExpressionType {
 
     LogicalOr,
     LogicalAnd,
+    Is,
+    IsNot,
 }
 
 #[derive(Clone, Debug, PartialEq)]

@@ -1,6 +1,6 @@
 use std::{
     collections::{HashMap, HashSet},
-    fmt::{Display, format},
+    fmt::Display,
     process::exit,
 };
 
@@ -39,16 +39,8 @@ impl Block {
     }
     pub fn program_block() -> Self {
         Self {
-            variables: HashMap::from([
-                (String::from("true"), RuntimeValue::Bool(true)),
-                (String::from("false"), RuntimeValue::Bool(false)),
-                (String::from("null"), RuntimeValue::Null),
-            ]),
-            finals: HashSet::from([
-                String::from("true"),
-                String::from("false"),
-                String::from("null"),
-            ]),
+            variables: HashMap::new(),
+            finals: HashSet::new(),
             parent_block: Option::None,
         }
     }
@@ -133,6 +125,21 @@ impl RuntimeValue {
             RuntimeValue::Bool(val) => val.to_string(),
         }
     }
+    pub fn is_bool(&self) -> bool {
+        return self.get_value_type().eq(&ValueType::Bool);
+    }
+
+    pub fn is_number(&self) -> bool {
+        return self.get_value_type().eq(&ValueType::Number);
+    }
+
+    pub fn is_string(&self) -> bool {
+        return self.get_value_type().eq(&ValueType::String);
+    }
+
+    pub fn is_null(&self) -> bool {
+        return self.get_value_type().eq(&ValueType::Null);
+    }
 }
 pub fn evaluate_program(program: Program) {
     let mut program_block = Block::program_block();
@@ -202,53 +209,72 @@ fn evaluate_binary_expression(
     left: BoundExpression,
     operator: BoundBinaryExpressionType,
     right: BoundExpression,
-    _position: usize,
+    position: usize,
     block: &mut Block,
 ) -> RuntimeValue {
     let left = evaluate_expression(left, block);
     let right = evaluate_expression(right, block);
 
-    if left.get_value_type().eq(&ValueType::Number) && right.get_value_type().eq(&ValueType::Number)
-    {
-        let left = left.expect_value_type::<f64>();
-        let right = right.expect_value_type::<f64>();
-        return RuntimeValue::Number(match operator {
-            BoundBinaryExpressionType::Addition => left + right,
-            BoundBinaryExpressionType::Subtraction => left - right,
-            BoundBinaryExpressionType::Multiplication => left * right,
-            BoundBinaryExpressionType::Division => left / right,
-            v => error(ColoredString::from(format!(
-                "Binary expression in not implemented for {} {} {} at position {}",
-                left.to_string().bold(),
-                format!("{:?}", v).bold().yellow(),
-                right.to_string().bold(),
-                _position.to_string().bold().blue()
-            ))),
-        });
-    } else if left.get_value_type().eq(&ValueType::Bool)
-        && right.get_value_type().eq(&ValueType::Bool)
-    {
-        let left = left.expect_value_type::<bool>();
-        let right = right.expect_value_type::<bool>();
-        return RuntimeValue::Bool(match operator {
-            BoundBinaryExpressionType::LogicalAnd => left && right,
-            BoundBinaryExpressionType::LogicalOr => left || right,
-            v => error(ColoredString::from(format!(
-                "Binary expression in not implemented for {} {} {} at position {}",
-                left.to_string().bold(),
-                format!("{:?}", v).bold().yellow(),
-                right.to_string().bold(),
-                _position.to_string().bold().blue()
-            ))),
-        });
+    if left.is_number() && right.is_number() {
+        return evaluate_number_binary_expression(left, right, operator, position);
+    } else if left.is_bool() && right.is_bool() {
+        return evaluate_bool_binary_expression(left, right, operator, position);
     }
     error(ColoredString::from(format!(
         "Binary expression in not implemented for {} {} {} at position {}",
         left.to_string().bold(),
         format!("{:?}", operator).bold().yellow(),
         right.to_string().bold(),
-        _position.to_string().bold().blue()
+        position.to_string().bold().blue()
     )));
+}
+
+fn evaluate_bool_binary_expression(
+    left: RuntimeValue,
+    right: RuntimeValue,
+    operator: BoundBinaryExpressionType,
+    position: usize,
+) -> RuntimeValue {
+    let left = left.expect_value_type::<bool>();
+    let right = right.expect_value_type::<bool>();
+    return RuntimeValue::Bool(match operator {
+        BoundBinaryExpressionType::LogicalAnd => left && right,
+        BoundBinaryExpressionType::LogicalOr => left || right,
+        BoundBinaryExpressionType::Is => left == right,
+        BoundBinaryExpressionType::IsNot => left != right,
+        v => error(ColoredString::from(format!(
+            "Binary expression in not implemented for {} {} {} at position {}",
+            left.to_string().bold(),
+            format!("{:?}", v).bold().yellow(),
+            right.to_string().bold(),
+            position.to_string().bold().blue()
+        ))),
+    });
+}
+
+fn evaluate_number_binary_expression(
+    left: RuntimeValue,
+    right: RuntimeValue,
+    operator: BoundBinaryExpressionType,
+    position: usize,
+) -> RuntimeValue {
+    let left = left.expect_value_type::<f64>();
+    let right = right.expect_value_type::<f64>();
+    return match operator {
+        BoundBinaryExpressionType::Addition => RuntimeValue::Number(left + right),
+        BoundBinaryExpressionType::Subtraction => RuntimeValue::Number(left - right),
+        BoundBinaryExpressionType::Multiplication => RuntimeValue::Number(left * right),
+        BoundBinaryExpressionType::Division => RuntimeValue::Number(left / right),
+        BoundBinaryExpressionType::Is => RuntimeValue::Bool(left == right),
+        BoundBinaryExpressionType::IsNot => RuntimeValue::Bool(left != right),
+        v => error(ColoredString::from(format!(
+            "Binary expression in not implemented for {} {} {} at position {}",
+            left.to_string().bold(),
+            format!("{:?}", v).bold().yellow(),
+            right.to_string().bold(),
+            position.to_string().bold().blue()
+        ))),
+    };
 }
 
 pub fn error(message: ColoredString) -> ! {
