@@ -179,7 +179,7 @@ fn evaluate_expression(expression: BoundExpression, block: &mut Block) -> Runtim
             left,
             operator,
             right,
-            value_type,
+            result_type: value_type,
             position,
         } => evaluate_binary_expression(*left, operator, *right, position, block),
         _val => error(ColoredString::from(format!(

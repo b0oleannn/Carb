@@ -3,7 +3,7 @@ use std::fs;
 use crate::{
     binding::binder,
     evaluator::Program,
-    frontend::parser::{parser::Parser, pretty_print},
+    frontend::parser::{parser::Parser, pretty_bounded_print, pretty_print_ast},
 };
 pub mod binding;
 pub mod evaluator;
@@ -18,14 +18,15 @@ pub fn evaluate_file(file_path: &str) {
     let input = fs::read_to_string(file_path).unwrap();
     let mut parser = Parser::new(input);
     let ast = parser.produce_ast();
-    println!("Raw Ast: {ast:?}");
+    pretty_print_ast(ast.clone());
+
     let mut bounds = vec![];
 
     for expr in ast {
         bounds.push(binder::bind_expression(expr));
     }
     let program = Program::new(bounds);
-    pretty_print(&program);
+    pretty_bounded_print(&program);
 
     evaluator::evaluate_program(program)
 }

@@ -43,28 +43,4 @@ impl Expression {
     pub fn to_string(&self) -> String {
         return format!("{:?}", self);
     }
-    pub fn get_type(&self) -> ValueType {
-        match self {
-            Expression::Bool(_) => ValueType::Bool,
-            Expression::Number(_) => ValueType::Number,
-            Expression::String(_) => ValueType::String,
-            Expression::Null => ValueType::Null,
-            Expression::LiteralExpression { value, position: _ } => value.get_type(),
-            Expression::UnaryExpression {
-                operator: _,
-                operand,
-                position: _,
-            } => operand.get_type(),
-            Expression::BinaryExpression {
-                left,
-                operator: _,
-                right: _,
-                position: _,
-            } => left.get_type(),
-            _ => error(ColoredString::from(format!(
-                "Failed to get type of expression {}",
-                self.to_string().yellow(),
-            ))),
-        }
-    }
 }

@@ -19,7 +19,7 @@ pub enum BoundExpression {
         left: Box<BoundExpression>,
         operator: BoundBinaryExpressionType,
         right: Box<BoundExpression>,
-        value_type: ValueType,
+        result_type: ValueType,
         position: usize,
     },
 }
@@ -41,7 +41,7 @@ impl BoundExpression {
                 left: _,
                 operator: _,
                 right: _,
-                value_type,
+                result_type: value_type,
                 position: _,
             } => value_type.clone(),
         }
@@ -108,7 +108,7 @@ pub enum BoundUnaryOperatorType {
     Negation,
     LogicalNegation,
 }
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ValueType {
     Number,
     String,
