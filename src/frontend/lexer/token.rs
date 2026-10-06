@@ -64,6 +64,10 @@ pub enum TokenType {
     If,
     Else,
 
+    Exclamation,
+    And,
+    Or,
+
     EOF,
     Ignore,
 }

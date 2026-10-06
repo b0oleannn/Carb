@@ -1,5 +1,6 @@
 use std::{
     collections::{HashMap, HashSet},
+    fmt::{Display, format},
     process::exit,
 };
 
@@ -107,15 +108,14 @@ pub enum RuntimeValue {
     Bool(bool),
 }
 impl RuntimeValue {
-    fn get_number_value(&self, position: usize) -> f64 {
-        match self {
-            RuntimeValue::Number(num) => *num,
-            v => error(ColoredString::from(format!(
-                "Unable to get the number value at position {}, provided {}",
-                position.to_string().bold().blue(),
-                format!("{:?}", v.get_value_type()).bold()
-            ))),
-        }
+    pub fn expect_value_type<T>(self) -> T
+    where
+        T: TryFrom<RuntimeValue>,
+        <T as TryFrom<RuntimeValue>>::Error: Display,
+    {
+        T::try_from(self).unwrap_or_else(|err| {
+            error(ColoredString::from(format!("{}", err)));
+        })
     }
     fn get_value_type(&self) -> ValueType {
         match self {
@@ -123,6 +123,14 @@ impl RuntimeValue {
             RuntimeValue::String(_) => ValueType::String,
             RuntimeValue::Number(_) => ValueType::Number,
             RuntimeValue::Null => ValueType::Null,
+        }
+    }
+    pub fn to_string(self) -> String {
+        match self {
+            RuntimeValue::Number(val) => val.to_string(),
+            RuntimeValue::String(val) => val.to_string(),
+            RuntimeValue::Null => String::from("null"),
+            RuntimeValue::Bool(val) => val.to_string(),
         }
     }
 }
@@ -182,7 +190,10 @@ fn evaluate_unary_expression(
     match unary_expression.0 {
         BoundUnaryOperatorType::Identity => evaluate_expression(*unary_expression.1, block),
         BoundUnaryOperatorType::Negation => RuntimeValue::Number(
-            -evaluate_expression(*unary_expression.1, block).get_number_value(_position),
+            -evaluate_expression(*unary_expression.1, block).expect_value_type::<f64>(),
+        ),
+        BoundUnaryOperatorType::LogicalNegation => RuntimeValue::Bool(
+            !evaluate_expression(*unary_expression.1, block).expect_value_type::<bool>(),
         ),
     }
 }
@@ -194,34 +205,50 @@ fn evaluate_binary_expression(
     _position: usize,
     block: &mut Block,
 ) -> RuntimeValue {
-    let left: f64 = {
-        let value = evaluate_expression(left, block);
-        match value {
-            RuntimeValue::Number(num) => num,
-            _ => error(ColoredString::from(format!(
-                "Binary expression in not implemented for {} at position {}",
-                format!("{:?}", value.get_value_type()).bold(),
+    let left = evaluate_expression(left, block);
+    let right = evaluate_expression(right, block);
+
+    if left.get_value_type().eq(&ValueType::Number) && right.get_value_type().eq(&ValueType::Number)
+    {
+        let left = left.expect_value_type::<f64>();
+        let right = right.expect_value_type::<f64>();
+        return RuntimeValue::Number(match operator {
+            BoundBinaryExpressionType::Addition => left + right,
+            BoundBinaryExpressionType::Subtraction => left - right,
+            BoundBinaryExpressionType::Multiplication => left * right,
+            BoundBinaryExpressionType::Division => left / right,
+            v => error(ColoredString::from(format!(
+                "Binary expression in not implemented for {} {} {} at position {}",
+                left.to_string().bold(),
+                format!("{:?}", v).bold().yellow(),
+                right.to_string().bold(),
                 _position.to_string().bold().blue()
             ))),
-        }
-    };
-    let right: f64 = {
-        let value = evaluate_expression(right, block);
-        match value {
-            RuntimeValue::Number(num) => num,
-            _ => error(ColoredString::from(format!(
-                "Binary expression in not implemented for {} at position {}",
-                format!("{:?}", value.get_value_type()).bold(),
+        });
+    } else if left.get_value_type().eq(&ValueType::Bool)
+        && right.get_value_type().eq(&ValueType::Bool)
+    {
+        let left = left.expect_value_type::<bool>();
+        let right = right.expect_value_type::<bool>();
+        return RuntimeValue::Bool(match operator {
+            BoundBinaryExpressionType::LogicalAnd => left && right,
+            BoundBinaryExpressionType::LogicalOr => left || right,
+            v => error(ColoredString::from(format!(
+                "Binary expression in not implemented for {} {} {} at position {}",
+                left.to_string().bold(),
+                format!("{:?}", v).bold().yellow(),
+                right.to_string().bold(),
                 _position.to_string().bold().blue()
             ))),
-        }
-    };
-    return RuntimeValue::Number(match operator {
-        BoundBinaryExpressionType::Addition => left + right,
-        BoundBinaryExpressionType::Substraction => left - right,
-        BoundBinaryExpressionType::Multiplication => left * right,
-        BoundBinaryExpressionType::Devision => left / right,
-    });
+        });
+    }
+    error(ColoredString::from(format!(
+        "Binary expression in not implemented for {} {} {} at position {}",
+        left.to_string().bold(),
+        format!("{:?}", operator).bold().yellow(),
+        right.to_string().bold(),
+        _position.to_string().bold().blue()
+    )));
 }
 
 pub fn error(message: ColoredString) -> ! {
@@ -230,4 +257,25 @@ pub fn error(message: ColoredString) -> ! {
         "Evaluation Error".red().bold(),
     );
     exit(-1);
+}
+
+impl TryFrom<RuntimeValue> for bool {
+    type Error = String;
+
+    fn try_from(value: RuntimeValue) -> Result<Self, Self::Error> {
+        return match value {
+            RuntimeValue::Bool(b) => Ok(b),
+            v => Err(format!("Expected boolean,  found {:?}", v)),
+        };
+    }
+}
+impl TryFrom<RuntimeValue> for f64 {
+    type Error = String;
+
+    fn try_from(value: RuntimeValue) -> Result<Self, Self::Error> {
+        return match value {
+            RuntimeValue::Number(num) => Ok(num),
+            v => Err(format!("Expected number,  found {:?}", v)),
+        };
+    }
 }

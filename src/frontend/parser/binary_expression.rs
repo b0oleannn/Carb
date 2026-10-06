@@ -40,15 +40,17 @@ pub fn parse_binary_expression(parser: &mut Parser, parent_precedence: usize) ->
 
 fn get_unary_operator_precedence(value: &str) -> usize {
     return match value {
-        "+" | "-" => 3,
+        "+" | "-" | "!" => 5,
         _ => 0,
     };
 }
 
 fn get_binary_operator_precedence(str: &str) -> usize {
     return match str {
-        "*" | "/" => 2,
-        "+" | "-" => 1,
+        "*" | "/" => 4,
+        "+" | "-" => 3,
+        "&&" => 2,
+        "||" => 1,
         _ => 0,
     };
 }

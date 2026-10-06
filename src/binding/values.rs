@@ -1,3 +1,5 @@
+use std::fmt::format;
+
 use colored::{ColoredString, Colorize};
 
 use crate::{binding::error, frontend::parser::values::Expression};
@@ -50,9 +52,12 @@ impl BoundExpression {
 #[derive(Clone, Debug, PartialEq)]
 pub enum BoundBinaryExpressionType {
     Addition,
-    Substraction,
+    Subtraction,
     Multiplication,
-    Devision,
+    Division,
+
+    LogicalOr,
+    LogicalAnd,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -101,6 +106,7 @@ impl LiteralValue {
 pub enum BoundUnaryOperatorType {
     Identity,
     Negation,
+    LogicalNegation,
 }
 #[derive(Clone, Debug, PartialEq)]
 pub enum ValueType {
@@ -108,4 +114,9 @@ pub enum ValueType {
     String,
     Bool,
     Null,
+}
+impl ValueType {
+    pub fn to_string(&self) -> String {
+        format!("System.{:?}", self)
+    }
 }

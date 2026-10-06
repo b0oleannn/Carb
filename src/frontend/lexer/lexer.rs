@@ -48,9 +48,11 @@ impl Lexer {
                     self.position,
                 );
             }
+
             '=' => {
                 return Token::new(TokenType::Equals, self.eat().to_string(), self.position);
             }
+
             '"' => {
                 let start = self.position;
                 self.eat();
@@ -64,9 +66,32 @@ impl Lexer {
             ';' => {
                 return Token::new(TokenType::Semicolon, self.eat().to_string(), self.position);
             }
-
             ':' => {
                 return Token::new(TokenType::Colon, self.eat().to_string(), self.position);
+            }
+
+            '!' => {
+                return Token::new(
+                    TokenType::Exclamation,
+                    self.eat().to_string(),
+                    self.position,
+                );
+            }
+            '&' => {
+                if self.peak(1).eq(&'&') {
+                    self.eat();
+                    self.eat();
+                    return Token::new(TokenType::And, "&&".to_string(), self.position);
+                }
+                return Token::bad_token(&self.eat().to_string(), self.position);
+            }
+            '|' => {
+                if self.peak(1).eq(&'|') {
+                    self.eat();
+                    self.eat();
+                    return Token::new(TokenType::Or, "||".to_string(), self.position);
+                }
+                return Token::bad_token(&self.eat().to_string(), self.position);
             }
             _ => {
                 if self.current_character().is_numeric() {
@@ -130,7 +155,7 @@ impl Lexer {
         };
     }
 
-    pub(crate) fn produce_tokens(&mut self) -> Vec<Token> {
+    pub fn produce_tokens(&mut self) -> Vec<Token> {
         let mut tokens = Vec::new();
         while self.position < self.chars.len() {
             let current_token = self.next_token();
@@ -141,5 +166,9 @@ impl Lexer {
         }
         tokens.push(Token::eof());
         tokens
+    }
+
+    fn peak(&self, offset: usize) -> char {
+        *self.chars.get(self.position + offset).unwrap()
     }
 }
