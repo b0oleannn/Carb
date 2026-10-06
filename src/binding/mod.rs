@@ -2,6 +2,8 @@ use std::process::exit;
 
 use colored::{ColoredString, Colorize};
 
+pub mod bind_binary_expression;
+pub mod bind_unary_expression;
 pub mod binder;
 pub mod values;
 

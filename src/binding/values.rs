@@ -1,5 +1,3 @@
-use std::fmt::format;
-
 use colored::{ColoredString, Colorize};
 
 use crate::{binding::error, frontend::parser::values::Expression};

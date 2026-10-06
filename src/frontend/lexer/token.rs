@@ -30,6 +30,9 @@ impl Token {
     pub fn bad_token(value: &str, position: usize) -> Self {
         Self::new(TokenType::Bad, value.to_string(), position)
     }
+    pub fn to_string(self) -> String {
+        format!("{:?}", self)
+    }
 }
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenType {
@@ -70,4 +73,10 @@ pub enum TokenType {
 
     EOF,
     Ignore,
+}
+
+impl TokenType {
+    pub fn to_string(&self) -> String {
+        format!("{:?}", self)
+    }
 }

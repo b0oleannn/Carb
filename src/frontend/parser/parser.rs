@@ -46,10 +46,10 @@ impl Parser {
             return current;
         }
         error(ColoredString::from(format!(
-            "Failed to parse at position {}. Expected {token_type:?}, provided {:?}:{}",
+            "Failed to parse at position {}. Expected {token_type:?}, provided {}: {}",
             current.position.to_string().bold(),
-            current.token_type,
-            current.value.bold()
+            current.token_type.to_string().yellow(),
+            current.value
         )))
     }
 

@@ -49,7 +49,7 @@ pub fn parse_primary_expression(parser: &mut Parser) -> Expression {
 
         _ => error(ColoredString::from(format!(
             "Failed to parse token {} : '{}' at position {}",
-            format!("{:?}", parser.current_token().token_type).bold(),
+            parser.current_token().token_type.to_string().bold(),
             parser.current_token().value.bold().yellow(),
             parser.current_token().position.to_string().bold()
         ))),

@@ -1,9 +1,8 @@
+use std::fmt::Alignment::Left;
+
 use colored::{ColoredString, Colorize};
 
-use crate::{
-    binding::values::ValueType,
-    frontend::{error, parser::values::Expression::LiteralExpression},
-};
+use crate::{binding::values::ValueType, frontend::error};
 
 #[derive(Debug, Clone)]
 pub enum Expression {
@@ -41,6 +40,9 @@ pub enum Expression {
     },
 }
 impl Expression {
+    pub fn to_string(&self) -> String {
+        return format!("{:?}", self);
+    }
     pub fn get_type(&self) -> ValueType {
         match self {
             Expression::Bool(_) => ValueType::Bool,
@@ -53,9 +55,15 @@ impl Expression {
                 operand,
                 position: _,
             } => operand.get_type(),
+            Expression::BinaryExpression {
+                left,
+                operator: _,
+                right: _,
+                position: _,
+            } => left.get_type(),
             _ => error(ColoredString::from(format!(
                 "Failed to get type of expression {}",
-                format!("{:?}", self).bold(),
+                self.to_string().yellow(),
             ))),
         }
     }
