@@ -68,6 +68,9 @@ impl LiteralValue {
         match expr {
             Expression::Number(num) => LiteralValue::Number(num),
             Expression::Bool(b) => LiteralValue::Bool(b),
+            Expression::String(str) => LiteralValue::String(str),
+            Expression::Null => LiteralValue::Null,
+
             var => error(ColoredString::from(format!(
                 "Unable to get literal value from {}",
                 format!("{:?}", var).bold()

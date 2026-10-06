@@ -76,6 +76,10 @@ pub fn parse_primary_expression(parser: &mut Parser) -> Expression {
             value: Box::new(Expression::Bool(false)),
             position: parser.eat().position,
         },
+        TokenType::Null => Expression::LiteralExpression {
+            value: Box::new(Expression::Null),
+            position: parser.eat().position,
+        },
         TokenType::Identifier => parse_identifier(parser),
         TokenType::OpenBraces => parse_block(parser),
 

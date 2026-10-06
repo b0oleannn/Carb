@@ -123,6 +123,7 @@ impl Lexer {
                 ("letf".to_string(), TokenType::Letf),
                 ("true".to_string(), TokenType::True),
                 ("false".to_string(), TokenType::False),
+                ("null".to_string(), TokenType::Null),
                 ("if".to_string(), TokenType::If),
                 ("else".to_string(), TokenType::Else),
             ]),

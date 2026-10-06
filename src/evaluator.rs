@@ -5,7 +5,9 @@ use std::{
 
 use colored::{ColoredString, Colorize};
 
-use crate::binding::values::{BoundBinaryExpressionType, BoundExpression, BoundUnaryOperatorType};
+use crate::binding::values::{
+    BoundBinaryExpressionType, BoundExpression, BoundUnaryOperatorType, LiteralValue, ValueType,
+};
 
 #[derive(Debug, Clone)]
 pub struct Program {
@@ -108,10 +110,19 @@ impl RuntimeValue {
     fn get_number_value(&self, position: usize) -> f64 {
         match self {
             RuntimeValue::Number(num) => *num,
-            _ => error(ColoredString::from(format!(
-                "Unable to get the number value at position {}",
+            v => error(ColoredString::from(format!(
+                "Unable to get the number value at position {}, provided {}",
                 position.to_string().bold().blue(),
+                format!("{:?}", v.get_value_type()).bold()
             ))),
+        }
+    }
+    fn get_value_type(&self) -> ValueType {
+        match self {
+            RuntimeValue::Bool(_) => ValueType::Bool,
+            RuntimeValue::String(_) => ValueType::String,
+            RuntimeValue::Number(_) => ValueType::Number,
+            RuntimeValue::Null => ValueType::Null,
         }
     }
 }
@@ -130,11 +141,14 @@ fn evaluate_expression(expression: BoundExpression, block: &mut Block) -> Runtim
             position,
         } => {
             return match value {
-                crate::binding::values::LiteralValue::Number(num) => RuntimeValue::Number(num),
-                crate::binding::values::LiteralValue::Bool(b) => RuntimeValue::Bool(b),
-                val => error(ColoredString::from(format!(
+                LiteralValue::Number(num) => RuntimeValue::Number(num),
+                LiteralValue::Bool(b) => RuntimeValue::Bool(b),
+                LiteralValue::String(str) => RuntimeValue::String(str),
+                LiteralValue::Null => RuntimeValue::Null,
+
+                _val => error(ColoredString::from(format!(
                     "Failed to evaluate value {} at position {}",
-                    format!("{val:?}").bold(),
+                    format!("{_val:?}").bold(),
                     position.to_string().bold().blue(),
                 ))),
             };
@@ -153,7 +167,6 @@ fn evaluate_expression(expression: BoundExpression, block: &mut Block) -> Runtim
             value_type,
             position,
         } => evaluate_binary_expression(*left, operator, *right, position, block),
-
         _val => error(ColoredString::from(format!(
             "{} is not implemented yet",
             format!("{_val:?}").bold().blue()
@@ -186,9 +199,8 @@ fn evaluate_binary_expression(
         match value {
             RuntimeValue::Number(num) => num,
             _ => error(ColoredString::from(format!(
-                "Unable to get evaluate binary expression {} at position {}.
-               \n Binary expressions implemented only for numbers",
-                format!("{:?}", value).bold(),
+                "Binary expression in not implemented for {} at position {}",
+                format!("{:?}", value.get_value_type()).bold(),
                 _position.to_string().bold().blue()
             ))),
         }
@@ -198,9 +210,8 @@ fn evaluate_binary_expression(
         match value {
             RuntimeValue::Number(num) => num,
             _ => error(ColoredString::from(format!(
-                "Unable to get evaluate binary expression {} at position {}.
-               \n Binary expressions implemented only for numbers",
-                format!("{:?}", value).bold(),
+                "Binary expression in not implemented for {} at position {}",
+                format!("{:?}", value.get_value_type()).bold(),
                 _position.to_string().bold().blue()
             ))),
         }
@@ -212,49 +223,6 @@ fn evaluate_binary_expression(
         BoundBinaryExpressionType::Devision => left / right,
     });
 }
-//
-// fn evaluate_variable_declaration(
-//     variable_declaration: _VariableDeclaration,
-//     block: &mut Block,
-// ) -> RuntimeValue {
-//     let val = evaluate_expression(variable_declaration.value, block);
-//     match block.insert_variable(
-//         variable_declaration.is_final,
-//         &variable_declaration.identifier,
-//         val,
-//     ) {
-//         Ok(value) => value.clone(),
-//         Err(message) => error(ColoredString::from(format!(
-//             "{} at position {}",
-//             message,
-//             variable_declaration.position.to_string().bold().blue()
-//         ))),
-//     }
-// }
-// //
-// fn evaluate_identifier(identifier: String, position: usize, block: &mut Block) -> &RuntimeValue {
-//     return match block.inspect_variable(&identifier) {
-//         Some(val) => val,
-//         None => error(ColoredString::from(format!(
-//             "Variable '{}' wasn`t found in the block at position {}",
-//             identifier.bold(),
-//             position.to_string().bold().blue()
-//         ))),
-//     };
-// }
-
-// fn evaluate_block(
-//     expressions: Vec<Expression>,
-//     position: usize,
-//     parent_block: &mut Block,
-// ) -> RuntimeValue {
-//     let mut child_block = Block::new(parent_block.clone());
-//     let mut last = RuntimeValue::Null;
-//     for expression in expressions {
-//         last = evaluate_expression(expression, &mut child_block);
-//     }
-//     last
-// }
 
 pub fn error(message: ColoredString) -> ! {
     println!(

@@ -87,7 +87,7 @@ fn print_expression(expr: &BoundExpression, is_first: bool, prefix: &str, is_las
         BoundExpression::BoundLiteralExpression {
             value,
             value_type,
-            position,
+            position: _,
         } => {
             let mut child_prefix = String::new();
             if !is_first {

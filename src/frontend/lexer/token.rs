@@ -42,6 +42,7 @@ pub enum TokenType {
 
     True,
     False,
+    Null,
 
     BinaryOperator,
 
