@@ -61,6 +61,7 @@ impl Block {
         is_final: bool,
         identifier: &str,
         value: RuntimeValue,
+        value_type: ValueType,
     ) -> Result<RuntimeValue, ColoredString> {
         if self.variables.contains_key(identifier) {
             return Result::Err(ColoredString::from(format!(
@@ -70,7 +71,7 @@ impl Block {
         }
         self.variables.insert(
             identifier.to_string(),
-            Variable::new(value.get_value_type(), value.clone()),
+            Variable::new(value_type, value.clone()),
         );
         if is_final {
             self.finals.insert(identifier.to_string());
@@ -81,7 +82,6 @@ impl Block {
         &mut self,
         identifier: &str,
         value: &RuntimeValue,
-        value_type: ValueType,
     ) -> Result<RuntimeValue, ColoredString> {
         if let Some(prev_var) = self.inspect_variable(identifier) {
             if self.is_variable_final(identifier) {
@@ -92,7 +92,7 @@ impl Block {
             }
             self.variables.insert(
                 identifier.to_string(),
-                Variable::new(value_type, value.clone()),
+                Variable::new(prev_var.value_type, value.clone()),
             );
             return Result::Ok(value.clone());
         }

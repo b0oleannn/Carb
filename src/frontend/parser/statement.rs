@@ -1,17 +1,19 @@
 use colored::{ColoredString, Colorize};
 
-use crate::frontend::{
-    error,
-    lexer::token::TokenType,
-    parser::{
-        expression::parse_expression,
-        parser::Parser,
-        values::{Expression, Statement},
+use crate::{
+    binding::values::LiteralValue,
+    frontend::{
+        error,
+        lexer::token::TokenType,
+        parser::{
+            expression::parse_expression,
+            parser::Parser,
+            values::{Expression, Statement},
+        },
     },
 };
 
 pub fn parse_statement(parser: &mut Parser) -> Statement {
-    println!("parsing statement {:?}", parser.current_token());
     match parser.current_token().token_type {
         TokenType::Letf | TokenType::Let => parse_variable_declaration(parser),
         TokenType::Return => parse_return_statement(parser),
@@ -42,47 +44,61 @@ fn parse_return_statement(parser: &mut Parser) -> Statement {
 }
 
 fn parse_variable_declaration(parser: &mut Parser) -> Statement {
-    // let(f) a = <expr>
-    // let a;
+    // let(f) a = <expr>; <- The bind checker has to assign a type based on value. Doesn`t work when the value in null
+    // let a; <- Unsupported!
+    // let a: Integer = <expr>;
+    // let a: Integer;
     let is_final = parser.eat().token_type.eq(&TokenType::Letf);
-    let identifier = match parser.eat().token_type {
-        TokenType::Identifier(identifier) => identifier,
-        v => error(ColoredString::from(format!(
-            "Failed to parse variable name {} at position {}",
-            v.to_string().yellow(),
-            parser.current_token().position.to_string().bold().blue()
-        ))),
-    };
-    let value = match parser.current_token().token_type {
-        TokenType::Semicolon => {
-            if is_final {
-                error(ColoredString::from(format!(
-                    "Failed to declare final variable {} with null value at position {}",
-                    identifier.yellow(),
-                    parser.current_token().position.to_string().bold().blue()
-                )))
-            }
-            Expression::LiteralExpression {
-                value: Box::new(Expression::Null),
-                position: parser.position,
+    let identifier = parser.expect_identifier();
+    let mut declared_type = Option::None;
+    let value;
+    match parser.eat().token_type {
+        // : | =
+        TokenType::Colon => {
+            declared_type = Option::Some(parser.expect_identifier());
+            match parser.current_token().token_type {
+                TokenType::Equals => {
+                    parser.eat();
+                    value = parse_expression(parser);
+                }
+                TokenType::Semicolon => {
+                    if is_final {
+                        error(ColoredString::from(format!(
+                            "Invalid operation at position {}.\n Unable to declare a final variable with null variable",
+                            parser.current_token().position.to_string().bold()
+                        )))
+                    }
+                    value = Expression::LiteralExpression {
+                        value: Box::from(Expression::Null),
+                        position: parser.position,
+                    }
+                }
+                _ => error(ColoredString::from(format!(
+                    "Unexpected token during variable declaration at position {}.",
+                    parser.current_token().position.to_string().bold()
+                ))),
             }
         }
         TokenType::Equals => {
-            parser.eat();
-            parse_expression(parser)
+            value = parse_expression(parser);
         }
-        _ => error(ColoredString::from(format!(
-            "Unexpected token during variable {} declaration at position {}. \n Expected Semicolon or Equals",
-            identifier.yellow(),
-            parser.current_token().position.to_string().bold().blue()
+        TokenType::Semicolon => error(ColoredString::from(format!(
+            "Unable to parse the variable declaration at position {}.\n Variable with null value has to have a type",
+            parser.current_token().position.to_string().bold()
         ))),
-    };
+        unsupported => error(ColoredString::from(format!(
+            "Unexpected token {} at position {}.\nExpected pattern: let variable_name: type = <value>;",
+            unsupported.to_string().bold(),
+            parser.current_token().position.to_string().bold()
+        ))),
+    }
     parser.expect(TokenType::Semicolon);
 
     return Statement::VariableDeclaration {
         is_final,
         identifier,
         value: value,
+        declared_type,
         position: parser.position,
     };
 }

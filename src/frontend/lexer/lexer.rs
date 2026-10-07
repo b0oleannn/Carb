@@ -1,10 +1,10 @@
-use std::{collections::HashMap, ops::ControlFlow::Break};
+use std::collections::HashMap;
 
 use colored::{ColoredString, Colorize};
 
 use crate::frontend::{
     error,
-    lexer::token::{self, Token, TokenType},
+    lexer::token::{Token, TokenType},
 };
 
 pub struct Lexer {
@@ -16,8 +16,8 @@ pub struct Lexer {
 
 impl Lexer {
     pub fn next_token(&mut self) -> Token {
-        let mut token_type = TokenType::Bad("".to_string());
-        let mut pos = 0;
+        let token_type;
+        let mut pos;
         match self.current_character() {
             '\n' | '\t' | ' ' => {
                 token_type = TokenType::Ignore;
@@ -237,8 +237,6 @@ impl Lexer {
             self.position += 1;
         }
         let str = self.src.get(start..self.position).unwrap().to_string();
-        println!("{str}");
-        println!("{}", self.position);
         if let Some(t) = self.keywords.get(&str) {
             t.to_owned()
         } else {

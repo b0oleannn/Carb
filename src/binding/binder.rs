@@ -11,9 +11,14 @@ pub fn bind_statement(statement: Statement) -> Option<BoundStatement> {
             is_final,
             identifier,
             value,
+            declared_type,
             position,
         } => Option::Some(bind_variable_declaration(
-            is_final, identifier, value, position,
+            is_final,
+            identifier,
+            value,
+            declared_type,
+            position,
         )),
         Statement::Empty => Option::None,
         Statement::Expression(expression) => {
@@ -99,13 +104,47 @@ fn bind_variable_declaration(
     is_final: bool,
     identifier: String,
     value: Expression,
+    declared_type: Option<String>,
     position: usize,
 ) -> BoundStatement {
     let bound_value = bind_expression(value);
+    let value_type;
+    match declared_type {
+        Some(val) => {
+            value_type = ValueType::from_string(&val);
+            if value_type.is_null() {
+                error(ColoredString::from(format!(
+                    "Invalid operation at position {}. Variable is unable to have null value type",
+                    position.to_string().bold().blue()
+                )));
+            }
+            if !value_type.eq(&bound_value.get_value_type())
+                && !bound_value.get_value_type().is_null()
+            {
+                error(ColoredString::from(format!(
+                    "Type error at position {}. The declared type {} mismatches with the expression`s type {}",
+                    position.to_string().bold().blue(),
+                    value_type.to_string().bold().yellow(),
+                    bound_value.get_value_type().to_string().bold().yellow(),
+                )));
+            }
+        }
+        None => {
+            value_type = if bound_value.get_value_type().is_null() {
+                error(ColoredString::from(format!(
+                    "Invalid operation at position {}. Failed to assign value type ",
+                    position.to_string().bold().blue()
+                )));
+            } else {
+                bound_value.get_value_type()
+            }
+        }
+    }
     return BoundStatement::BoundVariableDeclaration {
         is_final,
         identifier,
-        value: Box::new(bound_value),
+        value: Box::from(bound_value),
+        value_type,
         position,
     };
 }

@@ -4,6 +4,7 @@ pub enum Statement {
     VariableDeclaration {
         is_final: bool,
         identifier: String,
+        declared_type: Option<String>,
         value: Expression,
         position: usize,
     },

@@ -43,6 +43,7 @@ pub fn print_statement(statement: &Statement, is_first: bool, prefix: &str, is_l
             is_final,
             identifier,
             value,
+            declared_type,
             position: _,
         } => {
             println!("{prefix}{marker}{}", "VariableDeclaration".bold());
@@ -52,6 +53,9 @@ pub fn print_statement(statement: &Statement, is_first: bool, prefix: &str, is_l
             }
             println!("{child_prefix}├── IsFinal: {is_final:?}");
             println!("{child_prefix}├── Identifier: {identifier:?}");
+            if let Some(v) = declared_type {
+                println!("{child_prefix}├── DeclaredType: {v:?}");
+            }
             print_expression(&value, false, &child_prefix, true);
         }
         Statement::Expression(expression) => print_expression(expression, false, prefix, is_last),
@@ -171,6 +175,7 @@ pub fn print_bounded_statement(
             is_final,
             identifier,
             value,
+            value_type,
             position: _,
         } => {
             println!("{prefix}{marker}{}", "BoundVariableDeclaration".bold());
@@ -180,6 +185,7 @@ pub fn print_bounded_statement(
             }
             println!("{child_prefix}├── IsFinal: {is_final:?}");
             println!("{child_prefix}├── Identifier: {identifier:?}");
+            println!("{child_prefix}├── ValueType: {value_type:?}");
             print_bound_expression(&value, false, &child_prefix, true);
         }
         BoundStatement::BoundReturn {

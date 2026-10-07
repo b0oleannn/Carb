@@ -71,4 +71,14 @@ impl Parser {
             self.tokens.len() - 1,
         )));
     }
+    pub fn expect_identifier(&mut self) -> String {
+        match self.eat().token_type {
+            TokenType::Identifier(str) => str,
+            v => error(ColoredString::from(format!(
+                "Expected identifier at position {}, found {}",
+                self.position,
+                v.to_string(),
+            ))),
+        }
+    }
 }

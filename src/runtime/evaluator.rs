@@ -25,9 +25,10 @@ fn evaluate_statement(
             is_final,
             identifier,
             value,
+            value_type,
             position,
         } => {
-            evaluate_variable_declaration(is_final, identifier, value, position, block);
+            evaluate_variable_declaration(is_final, identifier, value, value_type, position, block);
             Option::None
         }
         BoundStatement::BoundExpression(bound_expression) => {
@@ -56,13 +57,14 @@ fn evaluate_variable_declaration(
     is_final: bool,
     identifier: String,
     value: Box<BoundExpression>,
+    value_type: ValueType,
     position: usize,
     block: &Rc<RefCell<Block>>,
 ) {
     let val = evaluate_expression(*value, block);
     match block
         .borrow_mut()
-        .declare_variable(is_final, &identifier, val)
+        .declare_variable(is_final, &identifier, val, value_type)
     {
         Ok(v) => {
             println!("Declared variable {identifier}: {v:?}")
@@ -129,8 +131,8 @@ fn evaluate_expression(expression: BoundExpression, block: &Rc<RefCell<Block>>) 
 
 fn evaluate_block(
     bounded_statements: Vec<BoundStatement>,
-    value_type: ValueType,
-    position: usize,
+    _value_type: ValueType,
+    _position: usize,
     parent_block: &Rc<RefCell<Block>>,
 ) -> RuntimeValue {
     let current_block = Rc::new(RefCell::new(Block::new_child(Rc::clone(parent_block))));
@@ -163,7 +165,7 @@ fn evaluate_variable_assignment(
     if let Some(stored_variable) = block.inspect_variable(&identifier) {
         if stored_variable.value_type.eq(&ValueType::Null) {
             println!("{stored_variable:?}");
-            match block.assign_variable(&identifier, &val, val.get_value_type()) {
+            match block.assign_variable(&identifier, &val) {
                 Ok(run) => return run,
                 Err(err) => {
                     error(ColoredString::from(format!(
@@ -174,7 +176,7 @@ fn evaluate_variable_assignment(
             }
         } else if value_type.eq(&ValueType::Null) || stored_variable.value_type.eq(&value_type) {
             println!("{stored_variable:?}");
-            match block.assign_variable(&identifier, &val, stored_variable.value_type) {
+            match block.assign_variable(&identifier, &val) {
                 Ok(run) => return run,
                 Err(err) => {
                     error(ColoredString::from(format!(

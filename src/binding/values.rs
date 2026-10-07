@@ -7,6 +7,7 @@ pub enum BoundStatement {
         is_final: bool,
         identifier: String,
         value: Box<BoundExpression>,
+        value_type: ValueType,
         position: usize,
     },
     BoundExpression(BoundExpression),
@@ -23,6 +24,7 @@ impl BoundStatement {
                 is_final: _,
                 identifier: _,
                 value: _,
+                value_type: _,
                 position: _,
             } => ValueType::Void,
             BoundStatement::BoundReturn {
@@ -189,12 +191,34 @@ pub enum ValueType {
     Void,
 }
 impl ValueType {
+    pub fn from_string(val: &str) -> Self {
+        match val {
+            "Float" => ValueType::Float,
+            "Integer" => ValueType::Integer,
+            "String" => ValueType::String,
+            "Bool" => ValueType::Bool,
+            "Null" => ValueType::Null,
+            def => error(ColoredString::from(format!("Unsupported value type {def}"))),
+        }
+    }
     pub fn to_string(&self) -> String {
         format!("System.{:?}", self)
     }
     pub fn is_numeric(&self) -> bool {
         match self {
             ValueType::Float | ValueType::Integer => true,
+            _ => false,
+        }
+    }
+    pub fn is_bool(&self) -> bool {
+        match self {
+            ValueType::Bool => true,
+            _ => false,
+        }
+    }
+    pub fn is_null(&self) -> bool {
+        match self {
+            ValueType::Null => true,
             _ => false,
         }
     }
