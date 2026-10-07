@@ -18,15 +18,16 @@ pub struct Parser {
 impl Parser {
     pub fn new(source: String) -> Self {
         let mut lexer = Lexer::new(source);
-
+        let tokens = lexer.produce_tokens();
         Self {
-            tokens: lexer.produce_tokens(),
+            tokens: tokens.clone(),
             position: 0,
-            eof_token: Token::eof(),
+            eof_token: tokens.last().unwrap().to_owned(),
         }
     }
 
     pub fn produce_ast(&mut self) -> Vec<Statement> {
+        println!("Tokens: {:?}", self.tokens);
         let mut statements = Vec::new();
         while self.position < self.tokens.len() && !self.is_eof() {
             statements.push(parse_statement(self));
@@ -35,7 +36,7 @@ impl Parser {
     }
 
     pub fn current_token(&self) -> &Token {
-        return self.tokens.get(self.position).unwrap();
+        return self.tokens.get(self.position).unwrap_or(&self.eof_token);
     }
     pub fn is_eof(&self) -> bool {
         self.current_token().token_type.eq(&TokenType::EOF)
@@ -46,10 +47,9 @@ impl Parser {
             return current;
         }
         error(ColoredString::from(format!(
-            "Failed to parse at position {}. Expected {token_type:?}, provided {}: {}",
+            "Failed to parse at position {}. Expected {token_type:?}, provided {}",
             current.position.to_string().bold(),
             current.token_type.to_string().yellow(),
-            current.value
         )))
     }
 

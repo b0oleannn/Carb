@@ -14,15 +14,18 @@ pub fn parse_expression(parser: &mut Parser) -> Expression {
 }
 
 pub fn parse_primary_expression(parser: &mut Parser) -> Expression {
-    return match parser.current_token().token_type {
-        TokenType::Number => Expression::LiteralExpression {
-            value: Box::new(Expression::Number(
-                parser.current_token().value.parse::<f64>().unwrap(),
-            )),
+    println!("parsing primary expression {:?}", parser.current_token());
+    return match parser.current_token().token_type.clone() {
+        TokenType::Integer(int) => Expression::LiteralExpression {
+            value: Box::new(Expression::Integer(int)),
             position: parser.eat().position,
         },
-        TokenType::String => Expression::LiteralExpression {
-            value: Box::new(Expression::String(parser.current_token().value.clone())),
+        TokenType::Float(float) => Expression::LiteralExpression {
+            value: Box::new(Expression::Float(float)),
+            position: parser.eat().position,
+        },
+        TokenType::String(val) => Expression::LiteralExpression {
+            value: Box::new(Expression::String(val)),
             position: parser.eat().position,
         },
         TokenType::True => Expression::LiteralExpression {
@@ -45,26 +48,12 @@ pub fn parse_primary_expression(parser: &mut Parser) -> Expression {
             result
         }
         TokenType::OpenBraces => parse_block(parser),
-        TokenType::Return => {
-            parser.eat();
-            let value = if parser.current_token().token_type.eq(&TokenType::Semicolon) {
-                Option::None
-            } else {
-                Option::Some(Box::new(parse_expression(parser)))
-            };
-            parser.expect(TokenType::Semicolon);
 
-            Expression::Return {
-                value: value,
-                position: parser.position - 1,
-            }
-        }
-        TokenType::Identifier => parse_identifier(parser),
+        TokenType::Identifier(_) => parse_identifier(parser),
 
-        _ => error(ColoredString::from(format!(
-            "Failed to parse token {} : '{}' at position {}",
-            parser.current_token().token_type.to_string().bold(),
-            parser.current_token().value.bold().yellow(),
+        ref unrecognized => error(ColoredString::from(format!(
+            "Failed to parse token {} at position {}",
+            unrecognized.to_string().bold(),
             parser.current_token().position.to_string().bold()
         ))),
     };

@@ -10,16 +10,26 @@ pub enum BoundStatement {
         position: usize,
     },
     BoundExpression(BoundExpression),
+    BoundReturn {
+        value: Option<Box<BoundExpression>>,
+        value_type: ValueType,
+        position: usize,
+    },
 }
 impl BoundStatement {
     pub fn get_value_type(&self) -> ValueType {
         match self {
             BoundStatement::BoundVariableDeclaration {
-                is_final,
-                identifier,
-                value,
-                position,
+                is_final: _,
+                identifier: _,
+                value: _,
+                position: _,
             } => ValueType::Void,
+            BoundStatement::BoundReturn {
+                value: _,
+                value_type,
+                position: _,
+            } => *value_type,
             BoundStatement::BoundExpression(bound_expression) => bound_expression.get_value_type(),
         }
     }
@@ -49,11 +59,6 @@ pub enum BoundExpression {
         value_type: ValueType,
         position: usize,
     },
-    BoundReturn {
-        value: Option<Box<BoundExpression>>,
-        value_type: ValueType,
-        position: usize,
-    },
     BoundVariableAssignment {
         identifier: String,
         value: Box<BoundExpression>,
@@ -64,11 +69,6 @@ pub enum BoundExpression {
 impl BoundExpression {
     pub fn get_value_type(&self) -> ValueType {
         match self {
-            BoundExpression::BoundReturn {
-                value: _,
-                value_type,
-                position: _,
-            } => *value_type,
             BoundExpression::BoundLiteralExpression {
                 value: _,
                 value_type,
@@ -100,6 +100,9 @@ impl BoundExpression {
             } => *value_type,
         }
     }
+    pub fn to_string(&self) -> String {
+        return format!("{self:?}");
+    }
 }
 #[derive(Clone, Debug, PartialEq)]
 pub enum BoundBinaryExpressionType {
@@ -117,7 +120,8 @@ pub enum BoundBinaryExpressionType {
 #[derive(Clone, Debug, PartialEq)]
 pub enum LiteralValue {
     String(String),
-    Number(f64),
+    Integer(i64),
+    Float(f64),
     Bool(bool),
     Null,
 }
@@ -125,7 +129,8 @@ pub enum LiteralValue {
 impl LiteralValue {
     pub fn from(expr: Expression) -> LiteralValue {
         match expr {
-            Expression::Number(num) => LiteralValue::Number(num),
+            Expression::Integer(num) => LiteralValue::Integer(num),
+            Expression::Float(num) => LiteralValue::Float(num),
             Expression::Bool(b) => LiteralValue::Bool(b),
             Expression::String(str) => LiteralValue::String(str),
             Expression::Null => LiteralValue::Null,
@@ -139,15 +144,17 @@ impl LiteralValue {
     pub fn get_value_type(&self) -> ValueType {
         match self {
             LiteralValue::String(_) => ValueType::String,
-            LiteralValue::Number(_) => ValueType::Number,
+            LiteralValue::Float(_) => ValueType::Float,
+            LiteralValue::Integer(_) => ValueType::Integer,
             LiteralValue::Bool(_) => ValueType::Bool,
             LiteralValue::Null => ValueType::Null,
         }
     }
 
-    pub fn get_value(&self) -> f64 {
+    pub fn get_value(&self) -> NumericValue {
         return match self {
-            LiteralValue::Number(num) => *num,
+            LiteralValue::Integer(num) => NumericValue::Integer(*num),
+            LiteralValue::Float(num) => NumericValue::Float(*num),
             val => error(ColoredString::from(format!(
                 "Unable to get value {}",
                 format!("{:?}", val).bold()
@@ -156,15 +163,26 @@ impl LiteralValue {
     }
 }
 
+pub enum NumericValue {
+    Integer(i64),
+    Float(f64),
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum BoundUnaryOperatorType {
     Identity,
     Negation,
     LogicalNegation,
 }
+impl BoundUnaryOperatorType {
+    pub fn to_string(&self) -> String {
+        return format!("{:?}", self);
+    }
+}
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ValueType {
-    Number,
+    Float,
+    Integer,
     String,
     Bool,
     Null,
@@ -173,5 +191,11 @@ pub enum ValueType {
 impl ValueType {
     pub fn to_string(&self) -> String {
         format!("System.{:?}", self)
+    }
+    pub fn is_numeric(&self) -> bool {
+        match self {
+            ValueType::Float | ValueType::Integer => true,
+            _ => false,
+        }
     }
 }

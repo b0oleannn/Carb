@@ -1,7 +1,7 @@
 use std::fs;
 
 use crate::{
-    binding::binder,
+    binding::{binder, values::BoundStatement},
     frontend::parser::{parser::Parser, pretty_bounded_print, pretty_print_ast},
     runtime::{evaluator::evaluate_program, values::Program},
 };
@@ -23,7 +23,9 @@ pub fn evaluate_file(file_path: &str) {
     let mut bounds = vec![];
 
     for statement in ast {
-        bounds.push(binder::bind_statement(statement));
+        if let Some(v) = binder::bind_statement(statement) {
+            bounds.push(v);
+        }
     }
     let program = Program::new(bounds);
     pretty_bounded_print(&program);

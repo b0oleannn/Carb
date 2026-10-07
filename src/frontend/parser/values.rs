@@ -7,12 +7,19 @@ pub enum Statement {
         value: Expression,
         position: usize,
     },
+    Return {
+        value: Option<Box<Expression>>,
+        position: usize,
+    },
+    Empty,
+
     Expression(Expression),
 }
 
 #[derive(Debug, Clone)]
 pub enum Expression {
-    Number(f64),
+    Integer(i64),
+    Float(f64),
     String(String),
     Bool(bool),
     Null,
@@ -35,10 +42,6 @@ pub enum Expression {
     UnaryExpression {
         operator: String,
         operand: Box<Expression>,
-        position: usize,
-    },
-    Return {
-        value: Option<Box<Expression>>,
         position: usize,
     },
     VariableAssignment {

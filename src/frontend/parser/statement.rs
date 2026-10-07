@@ -11,9 +11,33 @@ use crate::frontend::{
 };
 
 pub fn parse_statement(parser: &mut Parser) -> Statement {
+    println!("parsing statement {:?}", parser.current_token());
     match parser.current_token().token_type {
         TokenType::Letf | TokenType::Let => parse_variable_declaration(parser),
-        _ => Statement::Expression(parse_expression(parser)),
+        TokenType::Return => parse_return_statement(parser),
+        TokenType::Semicolon => {
+            parser.eat();
+            Statement::Empty
+        }
+        _ => {
+            let expr = parse_expression(parser);
+            parser.expect(TokenType::Semicolon);
+            Statement::Expression(expr)
+        }
+    }
+}
+
+fn parse_return_statement(parser: &mut Parser) -> Statement {
+    parser.eat();
+    let value = if parser.current_token().token_type.eq(&TokenType::Semicolon) {
+        Option::None
+    } else {
+        Option::Some(Box::new(parse_expression(parser)))
+    };
+    parser.expect(TokenType::Semicolon);
+    Statement::Return {
+        value: value,
+        position: parser.position - 1,
     }
 }
 
@@ -21,7 +45,14 @@ fn parse_variable_declaration(parser: &mut Parser) -> Statement {
     // let(f) a = <expr>
     // let a;
     let is_final = parser.eat().token_type.eq(&TokenType::Letf);
-    let identifier = parser.expect(TokenType::Identifier).value;
+    let identifier = match parser.eat().token_type {
+        TokenType::Identifier(identifier) => identifier,
+        v => error(ColoredString::from(format!(
+            "Failed to parse variable name {} at position {}",
+            v.to_string().yellow(),
+            parser.current_token().position.to_string().bold().blue()
+        ))),
+    };
     let value = match parser.current_token().token_type {
         TokenType::Semicolon => {
             if is_final {

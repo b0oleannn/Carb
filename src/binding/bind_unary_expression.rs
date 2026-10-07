@@ -33,7 +33,16 @@ pub fn bind_unary_expression(
 }
 pub fn get_unary_operator_type(value_type: ValueType, operator: &str) -> BoundUnaryOperatorType {
     return match value_type {
-        ValueType::Number => match operator {
+        ValueType::Integer => match operator {
+            "+" => BoundUnaryOperatorType::Identity,
+            "-" => BoundUnaryOperatorType::Negation,
+            _ => error(ColoredString::from(format!(
+                "Unexpected unary operator `{}` for type {}",
+                operator.bold(),
+                value_type.to_string().bold().yellow(),
+            ))),
+        },
+        ValueType::Float => match operator {
             "+" => BoundUnaryOperatorType::Identity,
             "-" => BoundUnaryOperatorType::Negation,
             _ => error(ColoredString::from(format!(

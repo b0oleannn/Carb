@@ -40,11 +40,11 @@ fn get_result_type(
 ) -> ValueType {
     println!("matching {left:?} {operator:?} {right:?}");
     return match (left, right) {
-        (ValueType::Number, ValueType::Number) => match operator {
+        (ValueType::Float, ValueType::Float) => match operator {
             BoundBinaryExpressionType::Addition
             | BoundBinaryExpressionType::Subtraction
             | BoundBinaryExpressionType::Multiplication
-            | BoundBinaryExpressionType::Division => return ValueType::Number,
+            | BoundBinaryExpressionType::Division => return ValueType::Float,
 
             BoundBinaryExpressionType::Is | BoundBinaryExpressionType::IsNot => ValueType::Bool,
             _ => error(ColoredString::from(format!(
@@ -53,6 +53,46 @@ fn get_result_type(
                 right.to_string().yellow()
             ))),
         },
+        (ValueType::Integer, ValueType::Integer) => match operator {
+            BoundBinaryExpressionType::Addition
+            | BoundBinaryExpressionType::Subtraction
+            | BoundBinaryExpressionType::Multiplication
+            | BoundBinaryExpressionType::Division => return ValueType::Integer,
+
+            BoundBinaryExpressionType::Is | BoundBinaryExpressionType::IsNot => ValueType::Bool,
+            _ => error(ColoredString::from(format!(
+                "Not supported. Unable to get result type between `{}` and `{}`",
+                left.to_string().yellow(),
+                right.to_string().yellow()
+            ))),
+        },
+        (ValueType::Integer, ValueType::Float) => match operator {
+            BoundBinaryExpressionType::Addition
+            | BoundBinaryExpressionType::Subtraction
+            | BoundBinaryExpressionType::Multiplication
+            | BoundBinaryExpressionType::Division => return ValueType::Float,
+
+            BoundBinaryExpressionType::Is | BoundBinaryExpressionType::IsNot => ValueType::Bool,
+            _ => error(ColoredString::from(format!(
+                "Not supported. Unable to get result type between `{}` and `{}`",
+                left.to_string().yellow(),
+                right.to_string().yellow()
+            ))),
+        },
+        (ValueType::Float, ValueType::Integer) => match operator {
+            BoundBinaryExpressionType::Addition
+            | BoundBinaryExpressionType::Subtraction
+            | BoundBinaryExpressionType::Multiplication
+            | BoundBinaryExpressionType::Division => return ValueType::Float,
+
+            BoundBinaryExpressionType::Is | BoundBinaryExpressionType::IsNot => ValueType::Bool,
+            _ => error(ColoredString::from(format!(
+                "Not supported. Unable to get result type between `{}` and `{}`",
+                left.to_string().yellow(),
+                right.to_string().yellow()
+            ))),
+        },
+
         (ValueType::Bool, ValueType::Bool) => ValueType::Bool,
 
         (l, r) => error(ColoredString::from(format!(
@@ -68,7 +108,7 @@ pub fn get_binary_operator_type(
     operator: &str,
     right: ValueType,
 ) -> BoundBinaryExpressionType {
-    if left.eq(&ValueType::Number) && right.eq(&ValueType::Number) {
+    if left.is_numeric() && right.is_numeric() {
         match operator {
             "+" => return BoundBinaryExpressionType::Addition,
             "-" => return BoundBinaryExpressionType::Subtraction,

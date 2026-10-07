@@ -1,8 +1,13 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, ops::ControlFlow::Break};
 
-use crate::frontend::lexer::token::{Token, TokenType};
+use colored::{ColoredString, Colorize};
 
-pub(crate) struct Lexer {
+use crate::frontend::{
+    error,
+    lexer::token::{self, Token, TokenType},
+};
+
+pub struct Lexer {
     position: usize,
     chars: Vec<char>,
     src: String,
@@ -11,133 +16,126 @@ pub(crate) struct Lexer {
 
 impl Lexer {
     pub fn next_token(&mut self) -> Token {
-        return match self.current_character() {
+        let mut token_type = TokenType::Bad("".to_string());
+        let mut pos = 0;
+        match self.current_character() {
             '\n' | '\t' | ' ' => {
-                // skip
-                self.eat();
-                return Token::ignore_token();
+                token_type = TokenType::Ignore;
+                pos = self.get_and_increase_position();
             }
-            '-' | '+' | '/' | '*' => {
-                return Token::new(
-                    TokenType::BinaryOperator,
-                    self.eat().to_string(),
-                    self.position,
-                );
+            '-' => {
+                pos = self.get_and_increase_position();
+                if self.current_character().is_numeric() {
+                    token_type = match self.parse_number(true) {
+                        NumericVariant::Int(i) => TokenType::Integer(i),
+                        NumericVariant::Float(f) => TokenType::Float(f),
+                    };
+                } else {
+                    token_type = TokenType::Minus;
+                }
             }
+            '+' => {
+                pos = self.get_and_increase_position();
+                token_type = TokenType::Plus;
+            }
+            '/' => {
+                pos = self.get_and_increase_position();
+                token_type = TokenType::Slash;
+            }
+            '*' => {
+                pos = self.get_and_increase_position();
+                token_type = TokenType::Star;
+            }
+
             '(' => {
-                return Token::new(
-                    TokenType::OpenParenthesis,
-                    self.eat().to_string(),
-                    self.position,
-                );
+                pos = self.get_and_increase_position();
+                token_type = TokenType::OpenParenthesis;
             }
             ')' => {
-                return Token::new(
-                    TokenType::CloseParenthesis,
-                    self.eat().to_string(),
-                    self.position,
-                );
+                pos = self.get_and_increase_position();
+                token_type = TokenType::CloseParenthesis;
             }
             '{' => {
-                return Token::new(TokenType::OpenBraces, self.eat().to_string(), self.position);
+                pos = self.get_and_increase_position();
+                token_type = TokenType::OpenBraces;
             }
             '}' => {
-                return Token::new(
-                    TokenType::CloseBraces,
-                    self.eat().to_string(),
-                    self.position,
-                );
+                pos = self.get_and_increase_position();
+                token_type = TokenType::CloseBraces;
             }
 
             '=' => {
-                if self.peak(1).eq(&'=') {
-                    self.eat();
-                    self.eat();
-                    return Token::new(TokenType::DoubleEquals, "==".to_string(), self.position);
-                }
-                return Token::new(TokenType::Equals, self.eat().to_string(), self.position);
+                pos = self.get_and_increase_position();
+                token_type = if self.current_character().eq(&'=') {
+                    pos = self.get_and_increase_position();
+                    TokenType::DoubleEquals
+                } else {
+                    TokenType::Equals
+                };
             }
 
             '"' => {
-                let start = self.position;
-                self.eat();
-                while !self.current_character().eq(&'"') {
-                    self.eat();
-                }
-                let string = self.src.get(start..self.position).unwrap();
-                return Token::new(TokenType::String, string.to_string(), self.position);
+                token_type = TokenType::String(self.parse_string());
+                pos = self.get_and_increase_position();
             }
 
             ';' => {
-                return Token::new(TokenType::Semicolon, self.eat().to_string(), self.position);
+                pos = self.get_and_increase_position();
+                token_type = TokenType::Semicolon;
             }
             ':' => {
-                return Token::new(TokenType::Colon, self.eat().to_string(), self.position);
+                pos = self.get_and_increase_position();
+                token_type = TokenType::Colon;
             }
 
             '!' => {
-                if self.peak(1).eq(&'=') {
-                    self.eat();
-                    self.eat();
-                    return Token::new(TokenType::NotEquals, "!=".to_string(), self.position);
-                }
-                return Token::new(
-                    TokenType::Exclamation,
-                    self.eat().to_string(),
-                    self.position,
-                );
+                // != | !
+                pos = self.get_and_increase_position();
+                token_type = if self.current_character().eq(&'=') {
+                    pos = self.get_and_increase_position();
+                    TokenType::NotEquals
+                } else {
+                    TokenType::Exclamation
+                };
             }
             '&' => {
-                if self.peak(1).eq(&'&') {
-                    self.eat();
-                    self.eat();
-                    return Token::new(TokenType::And, "&&".to_string(), self.position);
+                pos = self.get_and_increase_position();
+                token_type = if self.current_character().eq(&'&') {
+                    pos = self.get_and_increase_position();
+                    TokenType::DoubleAmpersand
+                } else {
+                    TokenType::Bad("&".to_string())
                 }
-                return Token::bad_token(&self.eat().to_string(), self.position);
             }
             '|' => {
-                if self.peak(1).eq(&'|') {
-                    self.eat();
-                    self.eat();
-                    return Token::new(TokenType::Or, "||".to_string(), self.position);
+                pos = self.get_and_increase_position();
+                token_type = if self.current_character().eq(&'|') {
+                    pos = self.get_and_increase_position();
+                    TokenType::DoublePipe
+                } else {
+                    TokenType::Bad("|".to_string())
                 }
-                return Token::bad_token(&self.eat().to_string(), self.position);
+            }
+            '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => {
+                token_type = match self.parse_number(false) {
+                    NumericVariant::Int(val) => TokenType::Integer(val),
+                    NumericVariant::Float(val) => TokenType::Float(val),
+                };
+                pos = self.position;
             }
             _ => {
-                if self.current_character().is_numeric() {
-                    let start = self.position;
-                    // passing over the numeric
-                    while self.current_character().is_numeric() || self.current_character().eq(&'.')
-                    {
-                        self.eat();
-                    }
-                    return Token::new(
-                        TokenType::Number,
-                        self.src.get(start..self.position).unwrap().to_string(), // using slice to geting the number
-                        self.position,
-                    );
-                } else if self.current_character().is_ascii_alphabetic()
+                if self.current_character().is_ascii_alphabetic()
                     || self.current_character().eq(&'_')
                 {
-                    let start = self.position;
-                    while self.current_character().is_ascii_alphabetic()
-                        || self.current_character().eq(&'_')
-                    {
-                        self.eat();
-                    }
-                    let str = self.src.get(start..self.position).unwrap().to_string();
-                    return Token::new(
-                        self.keywords
-                            .get(&str)
-                            .unwrap_or_else(|| &TokenType::Identifier)
-                            .clone(),
-                        str,
-                        self.position,
-                    );
+                    token_type = self.parse_identifier();
+                    pos = self.position;
+                } else {
+                    pos = self.get_and_increase_position();
+                    token_type = TokenType::Bad(self.eat().to_string());
                 }
-                Token::bad_token(&self.eat().to_string(), self.position)
             }
         };
+        return Token::new(token_type, pos);
     }
     pub fn eat(&mut self) -> char {
         let current_character = self.current_character();
@@ -175,11 +173,80 @@ impl Lexer {
             }
             tokens.push(current_token);
         }
-        tokens.push(Token::eof());
+        tokens.push(Token::eof(self.chars.len().saturating_sub(1)));
         tokens
     }
 
-    fn peak(&self, offset: usize) -> char {
-        *self.chars.get(self.position + offset).unwrap()
+    // fn peak(&self, offset: usize) -> char {
+    //     *self.chars.get(self.position + offset).unwrap()
+    // }
+    fn get_and_increase_position(&mut self) -> usize {
+        self.position += 1;
+        return self.position - 1;
     }
+    fn parse_string(&mut self) -> String {
+        let start = self.position;
+        self.position += 1;
+        while !self.current_character().eq(&'"') {
+            self.position += 1;
+        }
+        return self.src.get(start..self.position).unwrap().to_owned();
+    }
+
+    fn parse_number(&mut self, is_negative: bool) -> NumericVariant {
+        // 1000 . 4545
+
+        let start = self.position;
+        let mut float_pos: i32 = -1;
+        loop {
+            match self.current_character() {
+                '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => {
+                    self.position += 1;
+                }
+                '.' => {
+                    if float_pos != -1 {
+                        error(ColoredString::from(format!(
+                            "Failed to tokenize at position {}. Number unable to have several dots",
+                            self.position.to_string().bold(),
+                        )))
+                    }
+                    float_pos = self.get_and_increase_position() as i32;
+                }
+                _ => {
+                    break;
+                }
+            }
+        }
+        let end = self.position;
+        return if float_pos == -1 {
+            NumericVariant::Int({
+                let res = self.src.get(start..end).unwrap().parse::<i64>().unwrap();
+                if is_negative { -res } else { res }
+            })
+        } else {
+            NumericVariant::Float({
+                let res = self.src.get(start..end).unwrap().parse::<f64>().unwrap();
+                if is_negative { -res } else { res }
+            })
+        };
+    }
+
+    fn parse_identifier(&mut self) -> TokenType {
+        let start = self.position;
+        while self.current_character().is_ascii_alphabetic() || self.current_character().eq(&'_') {
+            self.position += 1;
+        }
+        let str = self.src.get(start..self.position).unwrap().to_string();
+        println!("{str}");
+        println!("{}", self.position);
+        if let Some(t) = self.keywords.get(&str) {
+            t.to_owned()
+        } else {
+            TokenType::Identifier(str.to_string())
+        }
+    }
+}
+enum NumericVariant {
+    Int(i64),
+    Float(f64),
 }

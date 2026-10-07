@@ -108,7 +108,8 @@ impl Block {
 
 #[derive(Debug, Clone)]
 pub enum RuntimeValue {
-    Number(f64),
+    Float(f64),
+    Integer(i64),
     String(String),
     Null,
     Bool(bool),
@@ -127,13 +128,15 @@ impl RuntimeValue {
         match self {
             RuntimeValue::Bool(_) => ValueType::Bool,
             RuntimeValue::String(_) => ValueType::String,
-            RuntimeValue::Number(_) => ValueType::Number,
+            RuntimeValue::Integer(_) => ValueType::Integer,
+            RuntimeValue::Float(_) => ValueType::Float,
             RuntimeValue::Null => ValueType::Null,
         }
     }
     pub fn to_string(self) -> String {
         match self {
-            RuntimeValue::Number(val) => val.to_string(),
+            RuntimeValue::Integer(val) => val.to_string(),
+            RuntimeValue::Float(val) => val.to_string(),
             RuntimeValue::String(val) => val.to_string(),
             RuntimeValue::Null => String::from("null"),
             RuntimeValue::Bool(val) => val.to_string(),
@@ -143,8 +146,12 @@ impl RuntimeValue {
         return self.get_value_type().eq(&ValueType::Bool);
     }
 
-    pub fn is_number(&self) -> bool {
-        return self.get_value_type().eq(&ValueType::Number);
+    pub fn is_float(&self) -> bool {
+        return self.get_value_type().eq(&ValueType::Float);
+    }
+
+    pub fn is_integer(&self) -> bool {
+        return self.get_value_type().eq(&ValueType::Integer);
     }
 
     pub fn is_string(&self) -> bool {

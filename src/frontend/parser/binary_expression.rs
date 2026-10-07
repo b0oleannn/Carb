@@ -1,15 +1,30 @@
-use crate::frontend::parser::{
-    expression::parse_primary_expression, parser::Parser, values::Expression,
+use colored::{ColoredString, Colorize};
+
+use crate::frontend::{
+    error,
+    lexer::token::TokenType,
+    parser::{expression::parse_primary_expression, parser::Parser, values::Expression},
 };
 
 pub fn parse_binary_expression(parser: &mut Parser, parent_precedence: usize) -> Expression {
+    println!("Parsing binary expression {:?}", parser.current_token());
     let mut left;
 
     let unary_operator_precedence: usize =
-        get_unary_operator_precedence(&parser.current_token().value);
+        get_unary_operator_precedence(&parser.current_token().token_type);
 
     if unary_operator_precedence != 0 && unary_operator_precedence >= parent_precedence {
-        let operator = parser.eat().value;
+        let operator = match parser.eat().token_type {
+            TokenType::Minus => "-",
+            TokenType::Plus => "+",
+            TokenType::Exclamation => "!",
+            unrecognized => error(ColoredString::from(format!(
+                "Failed to get operator from token {} at position {}",
+                unrecognized.to_string().bold(),
+                parser.current_token().position.to_string().bold()
+            ))),
+        }
+        .to_string();
         let operand = parse_binary_expression(parser, unary_operator_precedence);
         left = Expression::UnaryExpression {
             operator,
@@ -18,19 +33,30 @@ pub fn parse_binary_expression(parser: &mut Parser, parent_precedence: usize) ->
         }
     } else {
         left = parse_primary_expression(parser);
+        println!("Left : {:?}", left);
     }
 
     loop {
-        let operator = parser.current_token().value.clone();
-        let precedence = get_binary_operator_precedence(&operator);
+        let precedence = get_binary_operator_precedence(&parser.current_token().token_type);
         if precedence == 0 || precedence <= parent_precedence {
             break;
         }
-        parser.eat();
+        let operator_token = parser.eat();
+        let operator = match operator_token.clone().token_type {
+            TokenType::Minus => "-",
+            TokenType::Plus => "+",
+            TokenType::Star => "*",
+            TokenType::Slash => "/",
+            TokenType::DoubleAmpersand => "&&",
+            TokenType::DoublePipe => "||",
+            TokenType::DoubleEquals => "==",
+            TokenType::NotEquals => "!=",
+            unrecognized => unreachable!(),
+        };
         let right = parse_binary_expression(parser, precedence);
         left = Expression::BinaryExpression {
             left: Box::new(left),
-            operator: operator,
+            operator: operator.to_owned(),
             right: Box::new(right),
             position: parser.position,
         }
@@ -38,50 +64,20 @@ pub fn parse_binary_expression(parser: &mut Parser, parent_precedence: usize) ->
     left
 }
 
-fn get_unary_operator_precedence(value: &str) -> usize {
-    return match value {
-        "+" | "-" | "!" => 6,
+fn get_unary_operator_precedence(token_type: &TokenType) -> usize {
+    return match token_type {
+        TokenType::Plus | TokenType::Minus | TokenType::Exclamation => 6,
         _ => 0,
     };
 }
 
-fn get_binary_operator_precedence(str: &str) -> usize {
-    return match str {
-        "*" | "/" => 5,
-        "+" | "-" => 4,
-        "==" | "!=" => 3,
-        "&&" => 2,
-        "||" => 1,
+fn get_binary_operator_precedence(token_type: &TokenType) -> usize {
+    return match token_type {
+        TokenType::Star | TokenType::Slash => 5,
+        TokenType::Plus | TokenType::Minus => 4,
+        TokenType::DoubleEquals | TokenType::NotEquals => 3,
+        TokenType::DoubleAmpersand => 2,
+        TokenType::DoublePipe => 1,
         _ => 0,
     };
 }
-
-// fn parse_multiplicative_expression(parser: &mut Parser) -> Expression {
-//     let mut left = expression::parse_primary_expression(parser);
-//     while parser.current_token().value.eq("*") || parser.current_token().value.eq("/") {
-//         let operator = parser.eat().value.clone();
-//         let right = parse_multiplicative_expression(parser);
-//         left = Expression::BinaryExpression {
-//             left: Box::new(left),
-//             operator,
-//             right: Box::new(right),
-//             position: parser.current_token().position.saturating_sub(1),
-//         }
-//     }
-//     return left;
-// }
-//
-// fn parse_addive_expression(parser: &mut Parser) -> Expression {
-//     let mut left = parse_multiplicative_expression(parser);
-//     while parser.current_token().value.eq("+") || parser.current_token().value.eq("-") {
-//         let operator = parser.eat().value.clone();
-//         let right = parse_addive_expression(parser);
-//         left = Expression::BinaryExpression {
-//             left: Box::new(left),
-//             operator,
-//             right: Box::new(right),
-//             position: parser.current_token().position.saturating_sub(1),
-//         }
-//     }
-//     return left;
-// }
