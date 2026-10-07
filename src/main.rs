@@ -1,13 +1,15 @@
 use std::fs;
 
 use crate::{
-    binding::{binder, values::BoundStatement},
-    frontend::parser::{parser::Parser, pretty_bounded_print, pretty_print_ast},
+    binding::binder,
+    frontend::parser::parser::Parser,
     runtime::{evaluator::evaluate_program, values::Program},
+    utils::{pretty_bounded_print, pretty_print_ast},
 };
 pub mod binding;
 pub mod frontend;
 pub mod runtime;
+pub mod utils;
 // TODO: Strings, comments.
 fn main() {
     let file_path = "/home/b0olean/RustroverProjects/Carb/main.carb";

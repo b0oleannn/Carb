@@ -1,4 +1,4 @@
-use std::process::exit;
+use std::{cell::RefCell, process::exit, rc::Rc};
 
 use colored::{ColoredString, Colorize};
 
@@ -11,12 +11,15 @@ use crate::{
 };
 
 pub fn evaluate_program(program: Program) {
-    let mut program_block = Block::program_block();
+    let program_block = Rc::from(RefCell::from(Block::new()));
     for statement in program.body {
-        println!("{:?}", evaluate_statement(statement, &mut program_block));
+        println!("{:?}", evaluate_statement(statement, &program_block));
     }
 }
-fn evaluate_statement(statement: BoundStatement, block: &mut Block) -> Option<RuntimeValue> {
+fn evaluate_statement(
+    statement: BoundStatement,
+    block: &Rc<RefCell<Block>>,
+) -> Option<RuntimeValue> {
     match statement {
         BoundStatement::BoundVariableDeclaration {
             is_final,
@@ -34,8 +37,19 @@ fn evaluate_statement(statement: BoundStatement, block: &mut Block) -> Option<Ru
             value,
             value_type,
             position,
-        } => todo!(),
+        } => Option::from(evaluate_return_statement(value, block, position)),
     }
+}
+
+fn evaluate_return_statement(
+    value: Option<Box<BoundExpression>>,
+    block: &Rc<RefCell<Block>>,
+    position: usize,
+) -> RuntimeValue {
+    if let Some(v) = value {
+        return evaluate_expression(*v, block);
+    }
+    return RuntimeValue::Null;
 }
 
 fn evaluate_variable_declaration(
@@ -43,10 +57,13 @@ fn evaluate_variable_declaration(
     identifier: String,
     value: Box<BoundExpression>,
     position: usize,
-    block: &mut Block,
+    block: &Rc<RefCell<Block>>,
 ) {
     let val = evaluate_expression(*value, block);
-    match block.declare_variable(is_final, &identifier, val) {
+    match block
+        .borrow_mut()
+        .declare_variable(is_final, &identifier, val)
+    {
         Ok(v) => {
             println!("Declared variable {identifier}: {v:?}")
         }
@@ -56,7 +73,7 @@ fn evaluate_variable_declaration(
         ))),
     }
 }
-fn evaluate_expression(expression: BoundExpression, block: &mut Block) -> RuntimeValue {
+fn evaluate_expression(expression: BoundExpression, block: &Rc<RefCell<Block>>) -> RuntimeValue {
     return match expression {
         BoundExpression::BoundLiteralExpression {
             value,
@@ -97,6 +114,12 @@ fn evaluate_expression(expression: BoundExpression, block: &mut Block) -> Runtim
             result_type,
             position,
         } => evaluate_binary_expression(*left, operator, *right, result_type, position, block),
+        BoundExpression::BoundBlock {
+            bounded_statements,
+            value_type,
+            position,
+        } => evaluate_block(bounded_statements, value_type, position, block),
+
         _val => error(ColoredString::from(format!(
             "{} is not implemented yet",
             format!("{_val:?}").bold().blue()
@@ -104,20 +127,54 @@ fn evaluate_expression(expression: BoundExpression, block: &mut Block) -> Runtim
     };
 }
 
+fn evaluate_block(
+    bounded_statements: Vec<BoundStatement>,
+    value_type: ValueType,
+    position: usize,
+    parent_block: &Rc<RefCell<Block>>,
+) -> RuntimeValue {
+    let current_block = Rc::new(RefCell::new(Block::new_child(Rc::clone(parent_block))));
+    for statement in bounded_statements.iter() {
+        match statement {
+            BoundStatement::BoundReturn {
+                value: _,
+                value_type: _,
+                position: _,
+            } => {
+                return evaluate_statement(statement.to_owned(), &current_block).unwrap();
+            }
+            _ => {
+                evaluate_statement(statement.to_owned(), &current_block);
+            }
+        }
+    }
+    return RuntimeValue::Null;
+}
+
 fn evaluate_variable_assignment(
     identifier: String,
     value: Box<BoundExpression>,
     value_type: ValueType,
     position: usize,
-    block: &mut Block,
+    block: &Rc<RefCell<Block>>,
 ) -> RuntimeValue {
     let val = evaluate_expression(*value, block);
-    if let Some(stored_val) = block.inspect_variable(&identifier) {
-        if stored_val.is_null()
-            || value_type.eq(&ValueType::Null)
-            || stored_val.get_value_type().eq(&value_type)
-        {
-            match block.assign_variable(&identifier, val) {
+    let mut block = block.borrow_mut();
+    if let Some(stored_variable) = block.inspect_variable(&identifier) {
+        if stored_variable.value_type.eq(&ValueType::Null) {
+            println!("{stored_variable:?}");
+            match block.assign_variable(&identifier, &val, val.get_value_type()) {
+                Ok(run) => return run,
+                Err(err) => {
+                    error(ColoredString::from(format!(
+                        "{err} at position {}",
+                        position.to_string().bold().blue()
+                    )));
+                }
+            }
+        } else if value_type.eq(&ValueType::Null) || stored_variable.value_type.eq(&value_type) {
+            println!("{stored_variable:?}");
+            match block.assign_variable(&identifier, &val, stored_variable.value_type) {
                 Ok(run) => return run,
                 Err(err) => {
                     error(ColoredString::from(format!(
@@ -132,9 +189,9 @@ fn evaluate_variable_assignment(
                 val.to_string().bold().yellow(),
                 value_type.to_string().bold().green(),
                 identifier.to_string().bold().yellow(),
-                stored_val.clone().to_string().bold().white(),
-                stored_val
-                    .get_value_type()
+                stored_variable.value.clone().to_string().bold().white(),
+                stored_variable
+                    .value_type
                     .clone()
                     .to_string()
                     .bold()
@@ -154,7 +211,7 @@ fn evaluate_variable_assignment(
 fn evaluate_unary_expression(
     unary_expression: (BoundUnaryOperatorType, Box<BoundExpression>),
     _result_type: ValueType,
-    block: &mut Block,
+    block: &Rc<RefCell<Block>>,
     position: usize,
 ) -> RuntimeValue {
     return match unary_expression.1.get_value_type().clone() {
@@ -209,7 +266,7 @@ fn evaluate_binary_expression(
     right: BoundExpression,
     result_type: ValueType,
     position: usize,
-    block: &mut Block,
+    block: &Rc<RefCell<Block>>,
 ) -> RuntimeValue {
     let left = evaluate_expression(left, block);
     let right = evaluate_expression(right, block);

@@ -71,6 +71,6 @@ fn parse_block(parser: &mut Parser) -> Expression {
     {
         body.push(parse_statement(parser));
     }
-    parser.eat();
+    println!("{:?}", parser.eat());
     return Expression::Block(body, parser.current_token().position);
 }

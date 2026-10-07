@@ -51,7 +51,7 @@ pub fn parse_binary_expression(parser: &mut Parser, parent_precedence: usize) ->
             TokenType::DoublePipe => "||",
             TokenType::DoubleEquals => "==",
             TokenType::NotEquals => "!=",
-            unrecognized => unreachable!(),
+            _unrecognized => unreachable!(),
         };
         let right = parse_binary_expression(parser, precedence);
         left = Expression::BinaryExpression {

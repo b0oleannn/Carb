@@ -1,6 +1,8 @@
 use std::{
+    cell::RefCell,
     collections::{HashMap, HashSet},
     fmt::Display,
+    rc::Rc,
 };
 
 use colored::{ColoredString, Colorize};
@@ -23,28 +25,37 @@ impl Program {
 
 #[derive(Debug)]
 pub struct Block {
-    variables: HashMap<String, RuntimeValue>,
+    variables: HashMap<String, Variable>,
     finals: HashSet<String>,
 
-    parent_block: Option<Box<Block>>,
+    parent_block: Option<Rc<RefCell<Block>>>,
+}
+#[derive(Debug, Clone)]
+pub struct Variable {
+    pub value_type: ValueType,
+    pub value: RuntimeValue,
 }
 
-impl Block {
-    pub fn new(parent_block: Block) -> Self {
-        Self {
-            variables: HashMap::new(),
-            finals: HashSet::new(),
-            parent_block: Option::from(Box::new(parent_block)),
-        }
+impl Variable {
+    pub fn new(value_type: ValueType, value: RuntimeValue) -> Self {
+        Self { value_type, value }
     }
-    pub fn program_block() -> Self {
+}
+impl Block {
+    pub fn new() -> Self {
         Self {
             variables: HashMap::new(),
             finals: HashSet::new(),
             parent_block: Option::None,
         }
     }
-
+    pub fn new_child(parent: Rc<RefCell<Block>>) -> Self {
+        Self {
+            variables: HashMap::new(),
+            finals: HashSet::new(),
+            parent_block: Option::Some(parent),
+        }
+    }
     pub fn declare_variable(
         &mut self,
         is_final: bool,
@@ -57,7 +68,10 @@ impl Block {
                 identifier.bold(),
             )));
         }
-        self.variables.insert(identifier.to_string(), value.clone());
+        self.variables.insert(
+            identifier.to_string(),
+            Variable::new(value.get_value_type(), value.clone()),
+        );
         if is_final {
             self.finals.insert(identifier.to_string());
         }
@@ -66,16 +80,26 @@ impl Block {
     pub fn assign_variable(
         &mut self,
         identifier: &str,
-        value: RuntimeValue,
+        value: &RuntimeValue,
+        value_type: ValueType,
     ) -> Result<RuntimeValue, ColoredString> {
-        if self.is_variable_final(identifier) {
-            return Result::Err(ColoredString::from(format!(
-                "Unable to reassign the the variable`s '{}' value. The variable is final",
-                identifier.red().bold(),
-            )));
+        if let Some(prev_var) = self.inspect_variable(identifier) {
+            if self.is_variable_final(identifier) {
+                return Result::Err(ColoredString::from(format!(
+                    "Unable to reassign the the variable`s '{}' value. The variable is final",
+                    identifier.red().bold(),
+                )));
+            }
+            self.variables.insert(
+                identifier.to_string(),
+                Variable::new(value_type, value.clone()),
+            );
+            return Result::Ok(value.clone());
         }
-        self.variables.insert(identifier.to_string(), value.clone());
-        Result::Ok(value)
+        return Result::Err(ColoredString::from(format!(
+            "Unable to reassign the the variable`s '{}' value. The variable wasn`t found in the block",
+            identifier.red().bold(),
+        )));
     }
 
     fn is_variable_final(&self, identifier: &str) -> bool {
@@ -83,26 +107,21 @@ impl Block {
             return true;
         }
         if let Some(parent) = &self.parent_block {
-            return parent.is_variable_final(identifier);
+            return parent.borrow().is_variable_final(identifier);
         }
         false
     }
 
-    pub fn inspect_variable(&self, identifier: &str) -> Option<&RuntimeValue> {
+    pub fn inspect_variable(&self, identifier: &str) -> Option<Variable> {
         if let Some(val) = self.variables.get(identifier) {
-            return Option::from(val);
+            return Option::from(val.clone());
         }
 
         if let Some(parent) = &self.parent_block {
-            return parent.inspect_variable(identifier);
+            return parent.borrow().inspect_variable(identifier);
         }
 
         Option::None
-
-        // error(ColoredString::from(format!(
-        //     "Variable {} was not found in the block.",
-        //     identifier.bold(),
-        // )))
     }
 }
 
