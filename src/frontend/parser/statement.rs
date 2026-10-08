@@ -1,15 +1,12 @@
 use colored::{ColoredString, Colorize};
 
-use crate::{
-    binding::values::LiteralValue,
-    frontend::{
-        error,
-        lexer::token::TokenType,
-        parser::{
-            expression::parse_expression,
-            parser::Parser,
-            values::{Expression, Statement},
-        },
+use crate::frontend::{
+    error,
+    lexer::token::TokenType,
+    parser::{
+        expression::parse_expression,
+        parser::Parser,
+        values::{Expression, Statement},
     },
 };
 
@@ -23,6 +20,7 @@ pub fn parse_statement(parser: &mut Parser) -> Statement {
         }
         _ => {
             let expr = parse_expression(parser);
+
             parser.expect(TokenType::Semicolon);
             Statement::Expression(expr)
         }

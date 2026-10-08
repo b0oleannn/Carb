@@ -14,7 +14,6 @@ pub fn parse_expression(parser: &mut Parser) -> Expression {
 }
 
 pub fn parse_primary_expression(parser: &mut Parser) -> Expression {
-    println!("parsing primary expression {:?}", parser.current_token());
     return match parser.current_token().token_type.clone() {
         TokenType::Integer(int) => Expression::LiteralExpression {
             value: Box::new(Expression::Integer(int)),

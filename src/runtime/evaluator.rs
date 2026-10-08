@@ -36,7 +36,7 @@ fn evaluate_statement(
         }
         BoundStatement::BoundReturn {
             value,
-            value_type,
+            value_type: _,
             position,
         } => Option::from(evaluate_return_statement(value, block, position)),
     }
@@ -45,7 +45,7 @@ fn evaluate_statement(
 fn evaluate_return_statement(
     value: Option<Box<BoundExpression>>,
     block: &Rc<RefCell<Block>>,
-    position: usize,
+    _position: usize,
 ) -> RuntimeValue {
     if let Some(v) = value {
         return evaluate_expression(*v, block);

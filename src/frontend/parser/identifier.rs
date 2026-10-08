@@ -13,7 +13,7 @@ pub fn parse_identifier(parser: &mut Parser) -> Expression {
         return parse_variable_assignment(identifier, parser);
     }
 
-    return Expression::Identifier(identifier, parser.eat().position);
+    return Expression::VariableCall(identifier, parser.current_token().position);
 }
 
 fn parse_variable_assignment(identifier: String, parser: &mut Parser) -> Expression {

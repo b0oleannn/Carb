@@ -30,7 +30,7 @@ pub enum Expression {
         position: usize,
     },
 
-    Identifier(String, usize),
+    VariableCall(String, usize),
 
     Block(Vec<Statement>, usize),
 

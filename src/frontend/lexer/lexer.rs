@@ -39,8 +39,34 @@ impl Lexer {
                 token_type = TokenType::Plus;
             }
             '/' => {
-                pos = self.get_and_increase_position();
-                token_type = TokenType::Slash;
+                self.eat();
+                if self.current_character().eq(&'/') {
+                    self.eat();
+                    loop {
+                        if self.current_character().eq(&'\n') {
+                            break;
+                        }
+                        self.eat();
+                    }
+                    token_type = TokenType::Ignore;
+                    pos = self.get_and_increase_position();
+                } else if self.current_character().eq(&'*') {
+                    loop {
+                        if self.current_character().eq(&'*') {
+                            self.eat();
+                            if self.current_character().eq(&'/') {
+                                self.eat();
+                                break;
+                            }
+                        }
+                        self.eat();
+                    }
+                    token_type = TokenType::Ignore;
+                    pos = self.get_and_increase_position();
+                } else {
+                    pos = self.position;
+                    token_type = TokenType::Slash;
+                }
             }
             '*' => {
                 pos = self.get_and_increase_position();

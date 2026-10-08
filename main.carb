@@ -1,1 +1,8 @@
-letf a: Integer;
+/** hellow */ letf a = 10;
+//
+    let b = 6;
+{
+    b = -10;
+};
+
+b;

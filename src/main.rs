@@ -10,7 +10,7 @@ pub mod binding;
 pub mod frontend;
 pub mod runtime;
 pub mod utils;
-// TODO: Strings, comments.
+// TODO: comments
 fn main() {
     let file_path = "/home/b0olean/RustroverProjects/Carb/main.carb";
     evaluate_file(file_path);

@@ -144,7 +144,15 @@ fn print_expression(expr: &Expression, is_first: bool, prefix: &str, is_last: bo
         Expression::Bool(val) => println!("{prefix}{marker}Bool : {val:?}",),
         Expression::Null => println!("{prefix}{marker}{}", "Null".bold()),
 
-        Expression::Identifier(_, _) => todo!(),
+        Expression::VariableCall(identifier, position) => {
+            let mut child_prefix = String::new();
+            if !is_first {
+                child_prefix = format!("{prefix}{}", if is_last { "    " } else { "│   " });
+            }
+
+            println!("{prefix}{marker}{}", "VariableCall".bold());
+            println!("{child_prefix}└── Identifier: {identifier:?}");
+        }
     }
 }
 
