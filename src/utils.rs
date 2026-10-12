@@ -235,7 +235,11 @@ fn print_bound_expression(expr: &BoundExpression, is_first: bool, prefix: &str, 
         marker = if is_last { "└── " } else { "├── " };
     }
     match expr {
-        BoundExpression::BoundVariableCall(identifier, position) => {
+        BoundExpression::BoundVariableCall {
+            identifier,
+            value_type,
+            position,
+        } => {
             let mut child_prefix = String::new();
             if !is_first {
                 child_prefix = format!("{prefix}{}", if is_last { "    " } else { "│   " });

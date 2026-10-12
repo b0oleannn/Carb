@@ -121,9 +121,11 @@ fn evaluate_expression(expression: BoundExpression, block: &Rc<RefCell<Block>>) 
             value_type,
             position,
         } => evaluate_block(bounded_statements, value_type, position, block),
-        BoundExpression::BoundVariableCall(identifier, position) => {
-            evaluate_variable_call(identifier, position, block)
-        }
+        BoundExpression::BoundVariableCall {
+            identifier,
+            value_type,
+            position,
+        } => evaluate_variable_call(identifier, position, block),
         _val => error(ColoredString::from(format!(
             "{} is not implemented yet",
             format!("{_val:?}").bold().blue()

@@ -1,5 +1,4 @@
 use std::collections::{HashMap, HashSet};
-use std::os::unix::raw::dev_t;
 
 use crate::binding::bind_binary_expression::bind_binary_expression;
 use crate::binding::bind_unary_expression::bind_unary_expression;
@@ -9,9 +8,9 @@ use crate::frontend::parser::values::{Expression, Statement};
 use colored::{ColoredString, Colorize};
 
 pub struct Binder {
-    //                 depth        is_final identifier
-    //                   |              |       |
-    variables: HashMap<usize, HashSet<String>>,
+    //                 depth      identifier  value type
+    //                   |              |         |
+    variables: HashMap<usize, HashMap<String, ValueType>>,
 }
 
 impl Binder {
@@ -92,8 +91,12 @@ impl Binder {
         //  {
         //      a + 10; - 1
         //  }
-        if let Some(d) = self.inspect_variable(depth, &identifier) {
-            return BoundExpression::BoundVariableCall(identifier, position);
+        if let Some(r#type) = self.inspect_variable(depth, &identifier) {
+            return BoundExpression::BoundVariableCall {
+                identifier,
+                value_type: r#type,
+                position,
+            };
         }
         error(ColoredString::from(format!(
             "Unexpected operation at position {}. The variable {} was not found in the block.",
@@ -198,10 +201,10 @@ impl Binder {
             }
         }
         if let Some(set) = self.variables.get_mut(&depth) {
-            set.insert(identifier.clone());
+            set.insert(identifier.clone(), value_type);
         } else {
             self.variables
-                .insert(depth, HashSet::from([identifier.clone()]));
+                .insert(depth, HashMap::from([(identifier.clone(), value_type)]));
         }
         return BoundStatement::BoundVariableDeclaration {
             is_final,
@@ -221,10 +224,11 @@ impl Binder {
         };
     }
 
-    fn inspect_variable(&self, depth: usize, identifier: &str) -> Option<usize> {
-        if let Some(set) = self.variables.get(&depth) {
-            if set.contains(identifier) {
-                return Some(depth);
+    fn inspect_variable(&self, depth: usize, identifier: &str) -> Option<ValueType> {
+        if let Some(map) = self.variables.get(&depth) {
+            if let Some(t) = map.get(identifier) {
+                print!("found variable {} : {:?}", identifier, t);
+                return Some(*t);
             }
         }
         if depth == 0 {

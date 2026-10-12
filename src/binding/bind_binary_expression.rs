@@ -24,7 +24,6 @@ pub fn bind_binary_expression(
 
     let bound_operator = get_binary_operator_type(left_type, &operator, right_type);
     let result_type: ValueType = get_result_type(left_type, &bound_operator, right_type);
-    println!("{result_type:?}");
     return BoundExpression::BoundBinaryExpression {
         left: Box::new(left_bound.clone()),
         operator: bound_operator,

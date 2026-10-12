@@ -29,7 +29,7 @@ impl Parser {
     }
 
     pub fn produce_ast(&mut self) -> Vec<Statement> {
-        println!("Tokens: {:?}", self.tokens);
+        println!("Tokens: {:#?}", self.tokens);
         let mut statements = Vec::new();
         while self.position < self.tokens.len() && !self.is_eof() {
             statements.push(parse_statement(self));
