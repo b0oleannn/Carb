@@ -72,5 +72,6 @@ fn parse_block(parser: &mut Parser) -> Expression {
         body.push(parse_statement(parser));
     }
     parser.depth -= 1;
+    parser.expect(TokenType::CloseBraces);
     return Expression::Block(body, parser.current_token().position);
 }

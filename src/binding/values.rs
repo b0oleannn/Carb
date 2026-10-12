@@ -82,9 +82,9 @@ impl BoundExpression {
                 position: _,
             } => *value_type,
             BoundExpression::BoundVariableCall {
-                identifier,
+                identifier: _,
                 value_type,
-                position,
+                position: _,
             } => *value_type,
             BoundExpression::BoundUnaryExpression {
                 operator: _,
