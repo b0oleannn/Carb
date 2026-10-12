@@ -67,6 +67,7 @@ pub enum BoundExpression {
         value_type: ValueType,
         position: usize,
     },
+    BoundVariableCall(String, usize),
 }
 impl BoundExpression {
     pub fn get_value_type(&self) -> ValueType {
@@ -76,6 +77,7 @@ impl BoundExpression {
                 value_type,
                 position: _,
             } => *value_type,
+            BoundExpression::BoundVariableCall(identifier, position) => ValueType::Null,
             BoundExpression::BoundUnaryExpression {
                 operator: _,
                 operand: _,

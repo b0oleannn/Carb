@@ -13,6 +13,7 @@ pub struct Parser {
     tokens: Vec<Token>,
     pub position: usize,
     eof_token: Token,
+    pub depth: usize,
 }
 
 impl Parser {
@@ -23,6 +24,7 @@ impl Parser {
             tokens: tokens.clone(),
             position: 0,
             eof_token: tokens.last().unwrap().to_owned(),
+            depth: 0,
         }
     }
 

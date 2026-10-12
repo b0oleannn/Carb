@@ -2,7 +2,7 @@ use colored::{ColoredString, Colorize};
 
 use crate::{
     binding::{
-        binder::bind_expression,
+        binder::Binder,
         error,
         values::{BoundBinaryExpressionType, BoundExpression, ValueType},
     },
@@ -10,13 +10,14 @@ use crate::{
 };
 
 pub fn bind_binary_expression(
+    binder: &mut Binder,
     left: Box<Expression>,
     operator: String,
     right: Box<Expression>,
     position: usize,
 ) -> BoundExpression {
-    let left_bound = bind_expression(*left.clone());
-    let right_bound = bind_expression(*right);
+    let left_bound = binder.bind_expression(*left.clone());
+    let right_bound = binder.bind_expression(*right);
 
     let left_type = left_bound.get_value_type();
     let right_type = right_bound.get_value_type();

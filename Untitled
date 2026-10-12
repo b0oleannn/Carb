@@ -1,0 +1,186 @@
+//hello
+
+diff --git a/main.carb b/main.carb
+index b6ecfec..ecddc2a 100644
+--- a/main.carb
++++ b/main.carb
+@@ -1 +1,8 @@
+-letf a: Integer;
++/** hellow */ letf a = 10;
++//
++    let b = 6;
++{
++    b = -10;
++};
++
++b;
+diff --git a/src/frontend/lexer/lexer.rs b/src/frontend/lexer/lexer.rs
+index 721865a..420c5d2 100644
+--- a/src/frontend/lexer/lexer.rs
++++ b/src/frontend/lexer/lexer.rs
+@@ -39,8 +39,34 @@ impl Lexer {
+                 token_type = TokenType::Plus;
+             }
+             '/' => {
+-                pos = self.get_and_increase_position();
+-                token_type = TokenType::Slash;
++                self.eat();
++                if self.current_character().eq(&'/') {
++                    self.eat();
++                    loop {
++                        if self.current_character().eq(&'\n') {
++                            break;
++                        }
++                        self.eat();
++                    }
++                    token_type = TokenType::Ignore;
++                    pos = self.get_and_increase_position();
++                } else if self.current_character().eq(&'*') {
++                    loop {
++                        if self.current_character().eq(&'*') {
++                            self.eat();
++                            if self.current_character().eq(&'/') {
++                                self.eat();
++                                break;
++                            }
++                        }
++                        self.eat();
++                    }
++                    token_type = TokenType::Ignore;
++                    pos = self.get_and_increase_position();
++                } else {
++                    pos = self.position;
++                    token_type = TokenType::Slash;
++                }
+             }
+             '*' => {
+                 pos = self.get_and_increase_position();
+diff --git a/src/frontend/parser/expression.rs b/src/frontend/parser/expression.rs
+index 31d3c2d..667a44f 100644
+--- a/src/frontend/parser/expression.rs
++++ b/src/frontend/parser/expression.rs
+@@ -14,7 +14,6 @@ pub fn parse_expression(parser: &mut Parser) -> Expression {
+ }
+ 
+ pub fn parse_primary_expression(parser: &mut Parser) -> Expression {
+-    println!("parsing primary expression {:?}", parser.current_token());
+     return match parser.current_token().token_type.clone() {
+         TokenType::Integer(int) => Expression::LiteralExpression {
+             value: Box::new(Expression::Integer(int)),
+diff --git a/src/frontend/parser/identifier.rs b/src/frontend/parser/identifier.rs
+index f0afe89..a83fa64 100644
+--- a/src/frontend/parser/identifier.rs
++++ b/src/frontend/parser/identifier.rs
+@@ -13,7 +13,7 @@ pub fn parse_identifier(parser: &mut Parser) -> Expression {
+         return parse_variable_assignment(identifier, parser);
+     }
+ 
+-    return Expression::Identifier(identifier, parser.eat().position);
++    return Expression::VariableCall(identifier, parser.current_token().position);
+ }
+ 
+ fn parse_variable_assignment(identifier: String, parser: &mut Parser) -> Expression {
+diff --git a/src/frontend/parser/statement.rs b/src/frontend/parser/statement.rs
+index b26f378..12174e3 100644
+--- a/src/frontend/parser/statement.rs
++++ b/src/frontend/parser/statement.rs
+@@ -1,15 +1,12 @@
+ use colored::{ColoredString, Colorize};
+ 
+-use crate::{
+-    binding::values::LiteralValue,
+-    frontend::{
+-        error,
+-        lexer::token::TokenType,
+-        parser::{
+-            expression::parse_expression,
+-            parser::Parser,
+-            values::{Expression, Statement},
+-        },
++use crate::frontend::{
++    error,
++    lexer::token::TokenType,
++    parser::{
++        expression::parse_expression,
++        parser::Parser,
++        values::{Expression, Statement},
+     },
+ };
+ 
+@@ -23,6 +20,7 @@ pub fn parse_statement(parser: &mut Parser) -> Statement {
+         }
+         _ => {
+             let expr = parse_expression(parser);
++
+             parser.expect(TokenType::Semicolon);
+             Statement::Expression(expr)
+         }
+diff --git a/src/frontend/parser/values.rs b/src/frontend/parser/values.rs
+index de4d56a..c564454 100644
+--- a/src/frontend/parser/values.rs
++++ b/src/frontend/parser/values.rs
+@@ -30,7 +30,7 @@ pub enum Expression {
+         position: usize,
+     },
+ 
+-    Identifier(String, usize),
++    VariableCall(String, usize),
+ 
+     Block(Vec<Statement>, usize),
+ 
+diff --git a/src/main.rs b/src/main.rs
+index effe1fc..f3f5612 100644
+--- a/src/main.rs
++++ b/src/main.rs
+@@ -10,7 +10,7 @@ pub mod binding;
+ pub mod frontend;
+ pub mod runtime;
+ pub mod utils;
+-// TODO: Strings, comments.
++// TODO: comments
+ fn main() {
+     let file_path = "/home/b0olean/RustroverProjects/Carb/main.carb";
+     evaluate_file(file_path);
+diff --git a/src/runtime/evaluator.rs b/src/runtime/evaluator.rs
+index c52316a..f375e0c 100644
+--- a/src/runtime/evaluator.rs
++++ b/src/runtime/evaluator.rs
+@@ -36,7 +36,7 @@ fn evaluate_statement(
+         }
+         BoundStatement::BoundReturn {
+             value,
+-            value_type,
++            value_type: _,
+             position,
+         } => Option::from(evaluate_return_statement(value, block, position)),
+     }
+@@ -45,7 +45,7 @@ fn evaluate_statement(
+ fn evaluate_return_statement(
+     value: Option<Box<BoundExpression>>,
+     block: &Rc<RefCell<Block>>,
+-    position: usize,
++    _position: usize,
+ ) -> RuntimeValue {
+     if let Some(v) = value {
+         return evaluate_expression(*v, block);
+diff --git a/src/utils.rs b/src/utils.rs
+index d4625cb..d787b70 100644
+--- a/src/utils.rs
++++ b/src/utils.rs
+@@ -144,7 +144,15 @@ fn print_expression(expr: &Expression, is_first: bool, prefix: &str, is_last: bo
+         Expression::Bool(val) => println!("{prefix}{marker}Bool : {val:?}",),
+         Expression::Null => println!("{prefix}{marker}{}", "Null".bold()),
+ 
+-        Expression::Identifier(_, _) => todo!(),
++        Expression::VariableCall(identifier, position) => {
++            let mut child_prefix = String::new();
++            if !is_first {
++                child_prefix = format!("{prefix}{}", if is_last { "    " } else { "│   " });
++            }
++
++            println!("{prefix}{marker}{}", "VariableCall".bold());
++            println!("{child_prefix}└── Identifier: {identifier:?}");
++        }
+     }
+ }
+ 

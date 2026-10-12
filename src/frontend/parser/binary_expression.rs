@@ -7,7 +7,6 @@ use crate::frontend::{
 };
 
 pub fn parse_binary_expression(parser: &mut Parser, parent_precedence: usize) -> Expression {
-    println!("Parsing binary expression {:?}", parser.current_token());
     let mut left;
 
     let unary_operator_precedence: usize =
@@ -33,7 +32,6 @@ pub fn parse_binary_expression(parser: &mut Parser, parent_precedence: usize) ->
         }
     } else {
         left = parse_primary_expression(parser);
-        println!("Left : {:?}", left);
     }
 
     loop {

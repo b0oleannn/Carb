@@ -62,6 +62,7 @@ fn parse_block(parser: &mut Parser) -> Expression {
     let mut body = Vec::new();
     parser.eat(); // {
 
+    parser.depth += 1;
     while !parser
         .current_token()
         .token_type
@@ -70,6 +71,6 @@ fn parse_block(parser: &mut Parser) -> Expression {
     {
         body.push(parse_statement(parser));
     }
-    println!("{:?}", parser.eat());
+    parser.depth -= 1;
     return Expression::Block(body, parser.current_token().position);
 }

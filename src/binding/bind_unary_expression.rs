@@ -2,7 +2,7 @@ use colored::{ColoredString, Colorize};
 
 use crate::{
     binding::{
-        binder::bind_expression,
+        binder::Binder,
         error,
         values::{BoundExpression, BoundUnaryOperatorType, ValueType},
     },
@@ -10,11 +10,12 @@ use crate::{
 };
 
 pub fn bind_unary_expression(
+    binder: &mut Binder,
     operator: String,
     operand: Box<Expression>,
     position: usize,
 ) -> BoundExpression {
-    let bound_operand = bind_expression(*operand);
+    let bound_operand = binder.bind_expression(*operand);
     let bound_operator: BoundUnaryOperatorType =
         get_unary_operator_type(bound_operand.get_value_type(), &operator);
 
