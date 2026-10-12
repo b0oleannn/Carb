@@ -121,12 +121,31 @@ fn evaluate_expression(expression: BoundExpression, block: &Rc<RefCell<Block>>) 
             value_type,
             position,
         } => evaluate_block(bounded_statements, value_type, position, block),
-
+        BoundExpression::BoundVariableCall {
+            identifier,
+            value_type,
+            position,
+        } => evaluate_variable_call(identifier, position, block),
         _val => error(ColoredString::from(format!(
             "{} is not implemented yet",
             format!("{_val:?}").bold().blue()
         ))),
     };
+}
+
+fn evaluate_variable_call(
+    identifier: String,
+    position: usize,
+    block: &RefCell<Block>,
+) -> RuntimeValue {
+    if let Some(var) = block.borrow().inspect_variable(&identifier) {
+        return var.value;
+    };
+    error(ColoredString::from(format!(
+        "Variable {} wasn`t found in the block at position {}",
+        identifier.to_string().bold().yellow(),
+        position.to_string().bold().blue()
+    )));
 }
 
 fn evaluate_block(
@@ -164,7 +183,6 @@ fn evaluate_variable_assignment(
     let mut block = block.borrow_mut();
     if let Some(stored_variable) = block.inspect_variable(&identifier) {
         if stored_variable.value_type.eq(&ValueType::Null) {
-            println!("{stored_variable:?}");
             match block.assign_variable(&identifier, &val) {
                 Ok(run) => return run,
                 Err(err) => {

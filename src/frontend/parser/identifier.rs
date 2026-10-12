@@ -13,7 +13,11 @@ pub fn parse_identifier(parser: &mut Parser) -> Expression {
         return parse_variable_assignment(identifier, parser);
     }
 
-    return Expression::VariableCall(identifier, parser.current_token().position);
+    return Expression::VariableCall {
+        depth: parser.depth,
+        identifier,
+        position: parser.current_token().position,
+    };
 }
 
 fn parse_variable_assignment(identifier: String, parser: &mut Parser) -> Expression {
@@ -21,6 +25,7 @@ fn parse_variable_assignment(identifier: String, parser: &mut Parser) -> Express
     parser.expect(TokenType::Equals);
     let expr = parse_expression(parser);
     Expression::VariableAssignment {
+        depth: parser.depth,
         identifier,
         value: Box::new(expr),
         position: parser.position,

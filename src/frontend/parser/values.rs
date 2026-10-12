@@ -2,6 +2,7 @@
 
 pub enum Statement {
     VariableDeclaration {
+        depth: usize,
         is_final: bool,
         identifier: String,
         declared_type: Option<String>,
@@ -30,7 +31,11 @@ pub enum Expression {
         position: usize,
     },
 
-    VariableCall(String, usize),
+    VariableCall {
+        depth: usize,
+        identifier: String,
+        position: usize,
+    },
 
     Block(Vec<Statement>, usize),
 
@@ -46,6 +51,7 @@ pub enum Expression {
         position: usize,
     },
     VariableAssignment {
+        depth: usize,
         identifier: String,
         value: Box<Expression>,
         position: usize,

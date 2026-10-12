@@ -1,7 +1,7 @@
 use std::fs;
 
 use crate::{
-    binding::binder,
+    binding::binder::{self, Binder},
     frontend::parser::parser::Parser,
     runtime::{evaluator::evaluate_program, values::Program},
     utils::{pretty_bounded_print, pretty_print_ast},
@@ -18,14 +18,17 @@ fn main() {
 
 pub fn evaluate_file(file_path: &str) {
     let input = fs::read_to_string(file_path).unwrap();
+
     let mut parser = Parser::new(input);
     let ast = parser.produce_ast();
+
     pretty_print_ast(&ast);
 
+    let mut binder = Binder::new();
     let mut bounds = vec![];
 
     for statement in ast {
-        if let Some(v) = binder::bind_statement(statement) {
+        if let Some(v) = binder.bind_statement(statement) {
             bounds.push(v);
         }
     }

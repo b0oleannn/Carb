@@ -40,6 +40,7 @@ pub fn print_statement(statement: &Statement, is_first: bool, prefix: &str, is_l
             }
         }
         Statement::VariableDeclaration {
+            depth: _,
             is_final,
             identifier,
             value,
@@ -72,6 +73,7 @@ fn print_expression(expr: &Expression, is_first: bool, prefix: &str, is_last: bo
     }
     match expr {
         Expression::VariableAssignment {
+            depth: _,
             identifier,
             value,
             position: _,
@@ -144,7 +146,11 @@ fn print_expression(expr: &Expression, is_first: bool, prefix: &str, is_last: bo
         Expression::Bool(val) => println!("{prefix}{marker}Bool : {val:?}",),
         Expression::Null => println!("{prefix}{marker}{}", "Null".bold()),
 
-        Expression::VariableCall(identifier, position) => {
+        Expression::VariableCall {
+            depth: _,
+            identifier,
+            position,
+        } => {
             let mut child_prefix = String::new();
             if !is_first {
                 child_prefix = format!("{prefix}{}", if is_last { "    " } else { "│   " });
@@ -229,6 +235,19 @@ fn print_bound_expression(expr: &BoundExpression, is_first: bool, prefix: &str, 
         marker = if is_last { "└── " } else { "├── " };
     }
     match expr {
+        BoundExpression::BoundVariableCall {
+            identifier,
+            value_type,
+            position,
+        } => {
+            let mut child_prefix = String::new();
+            if !is_first {
+                child_prefix = format!("{prefix}{}", if is_last { "    " } else { "│   " });
+            }
+
+            println!("{prefix}{marker}{}", "BoundVariableCall".bold());
+            println!("{child_prefix}└── Identifier: {identifier:?}");
+        }
         BoundExpression::BoundBinaryExpression {
             left,
             operator,

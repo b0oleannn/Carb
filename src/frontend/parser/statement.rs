@@ -93,6 +93,7 @@ fn parse_variable_declaration(parser: &mut Parser) -> Statement {
     parser.expect(TokenType::Semicolon);
 
     return Statement::VariableDeclaration {
+        depth: parser.depth,
         is_final,
         identifier,
         value: value,

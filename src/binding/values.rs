@@ -67,12 +67,22 @@ pub enum BoundExpression {
         value_type: ValueType,
         position: usize,
     },
+    BoundVariableCall {
+        identifier: String,
+        value_type: ValueType,
+        position: usize,
+    },
 }
 impl BoundExpression {
     pub fn get_value_type(&self) -> ValueType {
         match self {
             BoundExpression::BoundLiteralExpression {
                 value: _,
+                value_type,
+                position: _,
+            } => *value_type,
+            BoundExpression::BoundVariableCall {
+                identifier: _,
                 value_type,
                 position: _,
             } => *value_type,
