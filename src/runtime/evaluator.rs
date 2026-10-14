@@ -31,6 +31,18 @@ fn evaluate_statement(
             evaluate_variable_declaration(is_final, identifier, value, value_type, position, block);
             Option::None
         }
+        BoundStatement::BoundIfStatement {
+            bound_condition,
+            bound_true_statement,
+            bound_false_statement,
+            position,
+        } => evaluate_if_statement(
+            bound_condition,
+            bound_true_statement.unwrap(),
+            *bound_false_statement,
+            block,
+            position,
+        ),
         BoundStatement::BoundExpression(bound_expression) => {
             Option::from(evaluate_expression(bound_expression, block))
         }
@@ -40,6 +52,29 @@ fn evaluate_statement(
             position,
         } => Option::from(evaluate_return_statement(value, block, position)),
     }
+}
+
+fn evaluate_if_statement(
+    bound_condition: BoundExpression,
+    bound_true_statement: BoundStatement,
+    bound_false_statement: Option<BoundStatement>,
+    parent_block: &Rc<RefCell<Block>>,
+    position: usize,
+) -> Option<RuntimeValue> {
+    let boo: bool = evaluate_expression(bound_condition, parent_block).expect_value_type();
+    let current_block = Rc::new(RefCell::new(Block::new_child(Rc::clone(parent_block))));
+
+    if boo {
+        return Option::from(evaluate_statement(bound_true_statement, &current_block));
+    } else {
+        if !bound_false_statement.is_none() {
+            return Option::from(evaluate_statement(
+                bound_false_statement.unwrap(),
+                &current_block,
+            ));
+        }
+    }
+    return None;
 }
 
 fn evaluate_return_statement(

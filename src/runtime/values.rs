@@ -23,7 +23,7 @@ impl Program {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Block {
     variables: HashMap<String, Variable>,
     finals: HashSet<String>,

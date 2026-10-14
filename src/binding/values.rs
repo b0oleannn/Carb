@@ -16,6 +16,12 @@ pub enum BoundStatement {
         value_type: ValueType,
         position: usize,
     },
+    BoundIfStatement {
+        bound_condition: BoundExpression,
+        bound_true_statement: Box<Option<BoundStatement>>,
+        bound_false_statement: Box<Option<BoundStatement>>,
+        position: usize,
+    },
 }
 impl BoundStatement {
     pub fn get_value_type(&self) -> ValueType {
@@ -25,6 +31,12 @@ impl BoundStatement {
                 identifier: _,
                 value: _,
                 value_type: _,
+                position: _,
+            } => ValueType::Void,
+            BoundStatement::BoundIfStatement {
+                bound_condition: _,
+                bound_true_statement: _,
+                bound_false_statement: _,
                 position: _,
             } => ValueType::Void,
             BoundStatement::BoundReturn {
