@@ -59,7 +59,7 @@ fn evaluate_if_statement(
     bound_true_statement: BoundStatement,
     bound_false_statement: Option<BoundStatement>,
     parent_block: &Rc<RefCell<Block>>,
-    position: usize,
+    _position: usize,
 ) -> Option<RuntimeValue> {
     let boo: bool = evaluate_expression(bound_condition, parent_block).expect_value_type();
     let current_block = Rc::new(RefCell::new(Block::new_child(Rc::clone(parent_block))));
@@ -115,7 +115,7 @@ fn evaluate_expression(expression: BoundExpression, block: &Rc<RefCell<Block>>) 
         BoundExpression::BoundLiteralExpression {
             value,
             value_type: _,
-            position,
+            position: _,
         } => {
             return match value {
                 LiteralValue::Integer(int) => RuntimeValue::Integer(int),
@@ -123,12 +123,12 @@ fn evaluate_expression(expression: BoundExpression, block: &Rc<RefCell<Block>>) 
                 LiteralValue::Bool(b) => RuntimeValue::Bool(b),
                 LiteralValue::String(str) => RuntimeValue::String(str),
                 LiteralValue::Null => RuntimeValue::Null,
-
-                _val => error(ColoredString::from(format!(
-                    "Failed to evaluate value {} at position {}",
-                    format!("{_val:?}").bold(),
-                    position.to_string().bold().blue(),
-                ))),
+                //
+                //                 _val => error(ColoredString::from(format!(
+                //                     "Failed to evaluate value {} at position {}",
+                //                     format!("{_val:?}").bold(),
+                //                     position.to_string().bold().blue(),
+                //                 ))),
             };
         }
         BoundExpression::BoundVariableAssignment {
@@ -158,13 +158,13 @@ fn evaluate_expression(expression: BoundExpression, block: &Rc<RefCell<Block>>) 
         } => evaluate_block(bounded_statements, value_type, position, block),
         BoundExpression::BoundVariableCall {
             identifier,
-            value_type,
+            value_type: _,
             position,
         } => evaluate_variable_call(identifier, position, block),
-        _val => error(ColoredString::from(format!(
-            "{} is not implemented yet",
-            format!("{_val:?}").bold().blue()
-        ))),
+        // _val => error(ColoredString::from(format!(
+        //     "{} is not implemented yet",
+        //     format!("{_val:?}").bold().blue()
+        // ))),
     };
 }
 

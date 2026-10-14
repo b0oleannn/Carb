@@ -214,7 +214,7 @@ pub fn print_bounded_statement(
             bound_condition,
             bound_true_statement,
             bound_false_statement,
-            position,
+            position: _,
         } => {
             let mut child_prefix = String::new();
             if !is_first {
