@@ -12,6 +12,7 @@ use crate::frontend::{
 
 pub fn parse_statement(parser: &mut Parser) -> Statement {
     match parser.current_token().token_type {
+        TokenType::If => parse_if_statement(parser),
         TokenType::Letf | TokenType::Let => parse_variable_declaration(parser),
         TokenType::Return => parse_return_statement(parser),
         TokenType::Semicolon => {
@@ -25,6 +26,31 @@ pub fn parse_statement(parser: &mut Parser) -> Statement {
             Statement::Expression(expr)
         }
     }
+}
+
+fn parse_if_statement(parser: &mut Parser) -> Statement {
+    // if (expr)
+    // {               < -
+    //                 < - statement
+    // }               < -
+    // else
+    // {               < -
+    //                 < - statement
+    // }               < -
+    parser.eat();
+    let expr = parse_expression(parser);
+    let if_true = parse_statement(parser);
+    let mut if_false: Option<Statement> = Option::None;
+    if parser.current_token().token_type.eq(&TokenType::Else) {
+        parser.eat();
+        if_false = Option::from(parse_statement(parser));
+    }
+    return Statement::IfStatement {
+        condition: expr,
+        if_true: Box::new(if_true),
+        if_false: Box::new(if_false),
+        position: parser.position,
+    };
 }
 
 fn parse_return_statement(parser: &mut Parser) -> Statement {

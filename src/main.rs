@@ -1,7 +1,7 @@
 use std::fs;
 
 use crate::{
-    binding::binder::{self, Binder},
+    binding::binder::Binder,
     frontend::parser::parser::Parser,
     runtime::{evaluator::evaluate_program, values::Program},
     utils::{pretty_bounded_print, pretty_print_ast},
@@ -12,7 +12,7 @@ pub mod runtime;
 pub mod utils;
 // TODO: comments
 fn main() {
-    let file_path = "/home/b0olean/RustroverProjects/Carb/main.carb";
+    let file_path = "/home/b0olean/Projects/Carb/main.carb";
     evaluate_file(file_path);
 }
 

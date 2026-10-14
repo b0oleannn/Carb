@@ -31,6 +31,18 @@ fn evaluate_statement(
             evaluate_variable_declaration(is_final, identifier, value, value_type, position, block);
             Option::None
         }
+        BoundStatement::BoundIfStatement {
+            bound_condition,
+            bound_true_statement,
+            bound_false_statement,
+            position,
+        } => evaluate_if_statement(
+            bound_condition,
+            bound_true_statement.unwrap(),
+            *bound_false_statement,
+            block,
+            position,
+        ),
         BoundStatement::BoundExpression(bound_expression) => {
             Option::from(evaluate_expression(bound_expression, block))
         }
@@ -40,6 +52,29 @@ fn evaluate_statement(
             position,
         } => Option::from(evaluate_return_statement(value, block, position)),
     }
+}
+
+fn evaluate_if_statement(
+    bound_condition: BoundExpression,
+    bound_true_statement: BoundStatement,
+    bound_false_statement: Option<BoundStatement>,
+    parent_block: &Rc<RefCell<Block>>,
+    position: usize,
+) -> Option<RuntimeValue> {
+    let boo: bool = evaluate_expression(bound_condition, parent_block).expect_value_type();
+    let current_block = Rc::new(RefCell::new(Block::new_child(Rc::clone(parent_block))));
+
+    if boo {
+        return Option::from(evaluate_statement(bound_true_statement, &current_block));
+    } else {
+        if !bound_false_statement.is_none() {
+            return Option::from(evaluate_statement(
+                bound_false_statement.unwrap(),
+                &current_block,
+            ));
+        }
+    }
+    return None;
 }
 
 fn evaluate_return_statement(
@@ -290,7 +325,6 @@ fn evaluate_binary_expression(
 ) -> RuntimeValue {
     let left = evaluate_expression(left, block);
     let right = evaluate_expression(right, block);
-
     match result_type {
         ValueType::Integer | ValueType::Float => {
             return evaluate_number_binary_expression(left, right, operator, position);
@@ -312,13 +346,84 @@ fn evaluate_bool_binary_expression(
     operator: BoundBinaryExpressionType,
     position: usize,
 ) -> RuntimeValue {
-    let left = left.expect_value_type::<bool>();
-    let right = right.expect_value_type::<bool>();
-    return RuntimeValue::Bool(match operator {
-        BoundBinaryExpressionType::LogicalAnd => left && right,
-        BoundBinaryExpressionType::LogicalOr => left || right,
-        BoundBinaryExpressionType::Is => left == right,
-        BoundBinaryExpressionType::IsNot => left != right,
+    match (left.get_value_type(), right.get_value_type()) {
+        (ValueType::Bool, ValueType::Bool) => {
+            let left = left.expect_value_type::<bool>();
+            let right = right.expect_value_type::<bool>();
+            return RuntimeValue::Bool(match operator {
+                BoundBinaryExpressionType::LogicalAnd => left && right,
+                BoundBinaryExpressionType::LogicalOr => left || right,
+                BoundBinaryExpressionType::Is => left == right,
+                BoundBinaryExpressionType::IsNot => left != right,
+                v => error(ColoredString::from(format!(
+                    "Binary expression in not implemented for {} {} {} at position {}",
+                    left.to_string().bold(),
+                    format!("{:?}", v).bold().yellow(),
+                    right.to_string().bold(),
+                    position.to_string().bold().blue()
+                ))),
+            });
+        }
+        (ValueType::Integer, ValueType::Integer) => {
+            let left = left.expect_value_type::<i64>();
+            let right = right.expect_value_type::<i64>();
+            return RuntimeValue::Bool(match operator {
+                BoundBinaryExpressionType::Is => left == right,
+                BoundBinaryExpressionType::IsNot => left != right,
+                v => error(ColoredString::from(format!(
+                    "Binary expression in not implemented for {} {} {} at position {}",
+                    left.to_string().bold(),
+                    format!("{:?}", v).bold().yellow(),
+                    right.to_string().bold(),
+                    position.to_string().bold().blue()
+                ))),
+            });
+        }
+        (ValueType::String, ValueType::String) => {
+            let left = left.expect_value_type::<String>();
+            let right = right.expect_value_type::<String>();
+            return RuntimeValue::Bool(match operator {
+                BoundBinaryExpressionType::Is => left.eq(&right),
+                BoundBinaryExpressionType::IsNot => !left.eq(&right),
+                v => error(ColoredString::from(format!(
+                    "Binary expression in not implemented for {} {} {} at position {}",
+                    left.to_string().bold(),
+                    format!("{:?}", v).bold().yellow(),
+                    right.to_string().bold(),
+                    position.to_string().bold().blue()
+                ))),
+            });
+        }
+        (ValueType::Float, ValueType::Float) => {
+            let left = left.expect_value_type::<f64>();
+            let right = right.expect_value_type::<f64>();
+            return RuntimeValue::Bool(match operator {
+                BoundBinaryExpressionType::Is => left == right,
+                BoundBinaryExpressionType::IsNot => left != right,
+                v => error(ColoredString::from(format!(
+                    "Binary expression in not implemented for {} {} {} at position {}",
+                    left.to_string().bold(),
+                    format!("{:?}", v).bold().yellow(),
+                    right.to_string().bold(),
+                    position.to_string().bold().blue()
+                ))),
+            });
+        }
+        (ValueType::Integer, ValueType::Float) | (ValueType::Float, ValueType::Integer) => {
+            let left = left.expect_value_type::<f64>();
+            let right = right.expect_value_type::<f64>();
+            return RuntimeValue::Bool(match operator {
+                BoundBinaryExpressionType::Is => left == right,
+                BoundBinaryExpressionType::IsNot => left != right,
+                v => error(ColoredString::from(format!(
+                    "Binary expression in not implemented for {} {} {} at position {}",
+                    left.to_string().bold(),
+                    format!("{:?}", v).bold().yellow(),
+                    right.to_string().bold(),
+                    position.to_string().bold().blue()
+                ))),
+            });
+        }
         v => error(ColoredString::from(format!(
             "Binary expression in not implemented for {} {} {} at position {}",
             left.to_string().bold(),
@@ -326,7 +431,7 @@ fn evaluate_bool_binary_expression(
             right.to_string().bold(),
             position.to_string().bold().blue()
         ))),
-    });
+    }
 }
 
 fn evaluate_number_binary_expression(
@@ -344,8 +449,27 @@ fn evaluate_number_binary_expression(
                 BoundBinaryExpressionType::Subtraction => RuntimeValue::Float(left - right),
                 BoundBinaryExpressionType::Multiplication => RuntimeValue::Float(left * right),
                 BoundBinaryExpressionType::Division => RuntimeValue::Float(left / right),
-                BoundBinaryExpressionType::Is => RuntimeValue::Bool(left == right),
-                BoundBinaryExpressionType::IsNot => RuntimeValue::Bool(left != right),
+                // BoundBinaryExpressionType::Is => RuntimeValue::Bool(left == right),
+                // BoundBinaryExpressionType::IsNot => RuntimeValue::Bool(left != right),
+                v => error(ColoredString::from(format!(
+                    "Binary expression in not implemented between {} {} {} at position {}",
+                    left.to_string().bold(),
+                    format!("{:?}", v).bold().yellow(),
+                    right.to_string().bold(),
+                    position.to_string().bold().blue()
+                ))),
+            };
+        }
+        (ValueType::Float, ValueType::Integer) | (ValueType::Integer, ValueType::Float) => {
+            let left = left.expect_value_type::<f64>();
+            let right = right.expect_value_type::<f64>();
+            return match operator {
+                BoundBinaryExpressionType::Addition => RuntimeValue::Float(left + right),
+                BoundBinaryExpressionType::Subtraction => RuntimeValue::Float(left - right),
+                BoundBinaryExpressionType::Multiplication => RuntimeValue::Float(left * right),
+                BoundBinaryExpressionType::Division => RuntimeValue::Float(left / right),
+                // BoundBinaryExpressionType::Is => RuntimeValue::Bool(left == right),
+                // BoundBinaryExpressionType::IsNot => RuntimeValue::Bool(left != right),
                 v => error(ColoredString::from(format!(
                     "Binary expression in not implemented between {} {} {} at position {}",
                     left.to_string().bold(),
@@ -364,8 +488,8 @@ fn evaluate_number_binary_expression(
                 BoundBinaryExpressionType::Subtraction => RuntimeValue::Integer(left - right),
                 BoundBinaryExpressionType::Multiplication => RuntimeValue::Integer(left * right),
                 BoundBinaryExpressionType::Division => RuntimeValue::Integer(left / right),
-                BoundBinaryExpressionType::Is => RuntimeValue::Bool(left == right),
-                BoundBinaryExpressionType::IsNot => RuntimeValue::Bool(left != right),
+                // BoundBinaryExpressionType::Is => RuntimeValue::Bool(left == right),
+                // BoundBinaryExpressionType::IsNot => RuntimeValue::Bool(left != right),
                 v => error(ColoredString::from(format!(
                     "Binary expression in not implemented between {} {} {} at position {}",
                     left.to_string().bold(),
@@ -391,35 +515,4 @@ pub fn error(message: ColoredString) -> ! {
         "Evaluation Error".red().bold(),
     );
     exit(-1);
-}
-
-impl TryFrom<RuntimeValue> for bool {
-    type Error = String;
-
-    fn try_from(value: RuntimeValue) -> Result<Self, Self::Error> {
-        return match value {
-            RuntimeValue::Bool(b) => Ok(b),
-            v => Err(format!("Expected boolean,  found {:?}", v)),
-        };
-    }
-}
-impl TryFrom<RuntimeValue> for f64 {
-    type Error = String;
-
-    fn try_from(value: RuntimeValue) -> Result<Self, Self::Error> {
-        return match value {
-            RuntimeValue::Float(num) => Ok(num),
-            v => Err(format!("Expected number,  found {:?}", v)),
-        };
-    }
-}
-impl TryFrom<RuntimeValue> for i64 {
-    type Error = String;
-
-    fn try_from(value: RuntimeValue) -> Result<Self, Self::Error> {
-        return match value {
-            RuntimeValue::Integer(num) => Ok(num),
-            v => Err(format!("Expected number,  found {:?}", v)),
-        };
-    }
 }

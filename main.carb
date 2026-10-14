@@ -1,2 +1,6 @@
-let a = 10;
-a = a + 10;
+letf a: Integer = 10;
+if a != true {
+    return 1;
+}; else {
+    return 2;
+};

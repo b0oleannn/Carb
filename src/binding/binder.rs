@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use crate::binding::bind_binary_expression::bind_binary_expression;
 use crate::binding::bind_unary_expression::bind_unary_expression;
@@ -22,6 +22,12 @@ impl Binder {
 
     pub fn bind_statement(&mut self, statement: Statement) -> Option<BoundStatement> {
         match statement {
+            Statement::IfStatement {
+                condition,
+                if_true,
+                if_false,
+                position,
+            } => Option::from(self.bind_if_statement(condition, *if_true, *if_false, position)),
             Statement::VariableDeclaration {
                 depth,
                 is_final,
@@ -235,5 +241,33 @@ impl Binder {
             return Option::None;
         }
         self.inspect_variable(depth - 1, identifier)
+    }
+
+    fn bind_if_statement(
+        &mut self,
+        condition: Expression,
+        if_true: Statement,
+        if_false: Option<Statement>,
+        position: usize,
+    ) -> BoundStatement {
+        let bound_condition = self.bind_expression(condition);
+        if !bound_condition.get_value_type().is_bool() {
+            error(ColoredString::from(format!(
+                "Type error at position {}. The if statement`s condition have to be boolean, provided {}",
+                position.to_string().bold().blue(),
+                bound_condition.get_value_type().to_string().bold().yellow(),
+            )));
+        }
+        let bound_true_statement = Box::new(self.bind_statement(if_true));
+        let mut bound_false_statement = Box::new(Option::None);
+        if !if_false.is_none() {
+            bound_false_statement = Box::new(self.bind_statement(if_false.unwrap()));
+        }
+        return BoundStatement::BoundIfStatement {
+            bound_condition,
+            bound_true_statement,
+            bound_false_statement,
+            position,
+        };
     }
 }

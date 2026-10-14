@@ -1,5 +1,6 @@
-#[derive(Debug, Clone)]
+use crate::runtime::values::Block;
 
+#[derive(Debug, Clone)]
 pub enum Statement {
     VariableDeclaration {
         depth: usize,
@@ -7,6 +8,12 @@ pub enum Statement {
         identifier: String,
         declared_type: Option<String>,
         value: Expression,
+        position: usize,
+    },
+    IfStatement {
+        condition: Expression,
+        if_true: Box<Statement>,
+        if_false: Box<Option<Statement>>,
         position: usize,
     },
     Return {
