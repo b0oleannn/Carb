@@ -1,5 +1,4 @@
 #[derive(Debug, Clone)]
-
 pub enum Statement {
     VariableDeclaration {
         depth: usize,

@@ -181,3 +181,44 @@ impl RuntimeValue {
         return self.get_value_type().eq(&ValueType::Null);
     }
 }
+impl TryFrom<RuntimeValue> for bool {
+    type Error = String;
+
+    fn try_from(value: RuntimeValue) -> Result<Self, Self::Error> {
+        return match value {
+            RuntimeValue::Bool(b) => Ok(b),
+            v => Err(format!("Expected boolean, found {:?}", v)),
+        };
+    }
+}
+impl TryFrom<RuntimeValue> for f64 {
+    type Error = String;
+
+    fn try_from(value: RuntimeValue) -> Result<Self, Self::Error> {
+        return match value {
+            RuntimeValue::Float(num) => Ok(num),
+            RuntimeValue::Integer(num) => Ok(num as f64),
+            v => Err(format!("Expected float,  found {:?}", v)),
+        };
+    }
+}
+impl TryFrom<RuntimeValue> for i64 {
+    type Error = String;
+    fn try_from(value: RuntimeValue) -> Result<Self, Self::Error> {
+        return match value {
+            RuntimeValue::Integer(num) => Ok(num),
+            RuntimeValue::Float(num) => Ok(num as i64),
+            v => Err(format!("Expected integer,  found {:?}", v)),
+        };
+    }
+}
+impl TryFrom<RuntimeValue> for String {
+    type Error = String;
+
+    fn try_from(value: RuntimeValue) -> Result<Self, Self::Error> {
+        return match value {
+            RuntimeValue::String(s) => Ok(s),
+            v => Err(format!("Expected String,  found {:?}", v)),
+        };
+    }
+}

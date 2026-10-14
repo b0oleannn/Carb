@@ -163,7 +163,7 @@ fn print_expression(expr: &Expression, is_first: bool, prefix: &str, is_last: bo
 }
 
 pub fn pretty_bounded_print(program: &Program) {
-    println!("{}", "Program".bold().yellow());
+    println!("{}", "BoundProgram".bold().yellow());
 
     for i in 0..program.body.len() {
         print_bounded_statement(
